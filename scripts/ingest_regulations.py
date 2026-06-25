@@ -1,7 +1,11 @@
+import logging
+
 from langchain_community.document_loaders import PDFPlumberLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import PGVector
+
+logger = logging.getLogger(__name__)
 
 CONNECTION_STRING = "postgresql+psycopg2://user:pass@localhost/regwatch"
 
@@ -34,10 +38,11 @@ def ingest_regulation(pdf_path: str, regulation_name: str,
         collection_name="regulations",
         connection_string=CONNECTION_STRING,
     )
-    print(f"Ingestados {len(chunks)} chunks de {regulation_name} ({celex})")
+    logger.info("Ingestados %d chunks de %s (%s)", len(chunks), regulation_name, celex)
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     regulations = [
         ("data/CELEX_32016R0679_ES_TXT.pdf", "GDPR", "32016R0679",
          "https://eur-lex.europa.eu/legal-content/ES/TXT/PDF/?uri=CELEX:32016R0679", "2016-05-04"),

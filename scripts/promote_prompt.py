@@ -1,5 +1,9 @@
 import argparse
+import logging
+
 from config import langfuse
+
+logger = logging.getLogger(__name__)
 
 
 def promote_prompt(from_label: str, to_label: str):
@@ -10,10 +14,11 @@ def promote_prompt(from_label: str, to_label: str):
         labels=[to_label],
         config=prompt.config,
     )
-    print(f"Prompt v{prompt.version} promovido de '{from_label}' a '{to_label}'")
+    logger.info("Prompt v%s promovido de '%s' a '%s'", prompt.version, from_label, to_label)
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     parser = argparse.ArgumentParser()
     parser.add_argument("--from", dest="from_label")
     parser.add_argument("--to", dest="to_label")

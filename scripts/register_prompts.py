@@ -1,4 +1,8 @@
+import logging
+
 from config import langfuse
+
+logger = logging.getLogger(__name__)
 
 FEW_SHOT_EXAMPLES = """
 ## Ejemplos de análisis
@@ -55,13 +59,14 @@ Analiza el documento de política interna proporcionado e identifica todos los g
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     langfuse.create_prompt(
         name="compliance-analyzer",
         prompt=SYSTEM_PROMPT_V2,
         labels=["production"],
         config={"temperature": 0.1},
     )
-    print("Prompt v2 registrado y promovido a producción")
+    logger.info("Prompt v2 registrado y promovido a producción")
 
 
 if __name__ == "__main__":
