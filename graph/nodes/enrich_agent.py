@@ -1,0 +1,36 @@
+from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import SystemMessage, HumanMessage
+from langgraph.prebuilt import ToolNode
+from langfuse.decorators import observe
+from tools.regulation_tools import ENRICH_TOOLS
+from graph.state import RegWatchState
+
+llm_enrich = ChatAnthropic(model="claude-sonnet-4-6").bind_tools(ENRICH_TOOLS)
+tools_node = ToolNode(ENRICH_TOOLS)
+
+ENRICH_SYSTEM = (
+    "Eres un asistente que enriquece un análisis de compliance. Decide si necesitas "
+    "consultar enmiendas regulatorias recientes (EUR-Lex) o buscar información adicional. "
+    "Si el documento no requiere datos externos, responde sin llamar herramientas."
+)
+
+
+@observe(name="enrich_agent")
+def enrich_agent(state: RegWatchState) -> dict:
+    msgs = state.get("messages") or [
+        SystemMessage(content=ENRICH_SYSTEM),
+        HumanMessage(content=f"Documento de política:\n{state['extracted_text'][:3000]}"),
+    ]
+    response = llm_enrich.invoke(msgs)
+    return {"messages": [response]}
+
+
+def route_enrich(state: RegWatchState) -> str:
+    last = state["messages"][-1]
+    return "tools_node" if getattr(last, "tool_calls", None) else "enrich_done"
+
+
+def collect_tool_results(state: RegWatchState) -> dict:
+    from langchain_core.messages import ToolMessage
+    results = [m.content for m in state["messages"] if isinstance(m, ToolMessage)]
+    return {"tool_results": [{"result": r} for r in results]}

@@ -1,0 +1,45 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: regwatch
+      POSTGRES_PASSWORD: regwatch
+      POSTGRES_DB: regwatch
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+      - ./migrations/001_cache.sql:/docker-entrypoint-initdb.d/01-cache.sql:ro
+      - ./migrations/002_memory.sql:/docker-entrypoint-initdb.d/02-memory.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U regwatch -d regwatch"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://regwatch:regwatch@db:5432/regwatch
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
