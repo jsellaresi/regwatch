@@ -1,0 +1,56 @@
+[project]
+name = "regwatch"
+version = "0.1.0"
+description = "RegWatch — Intelligent Compliance Analysis Platform"
+requires-python = ">=3.12"
+dependencies = [
+    "langchain",
+    "langgraph",
+    "langgraph-checkpoint-postgres",
+    "langchain-anthropic",
+    "langchain-openai",
+    "langchain-cohere",
+    "langchain-community",
+    "langfuse",
+    "psycopg2-binary",
+    "psycopg[binary,pool]",
+    "pgvector",
+    "pymupdf",
+    "pdfplumber",
+    "rank-bm25",
+    "fastapi",
+    "uvicorn[standard]",
+    "sse-starlette",
+    "pydantic",
+    "python-dotenv",
+    "sqlalchemy",
+    "requests",
+]
+
+# Dependencias de desarrollo (uv las instala con `uv sync`, las omite con `uv sync --no-dev`)
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+# Comandos de consola opcionales: `uv run regwatch-ingest`, etc.
+[project.scripts]
+regwatch-ingest = "scripts.ingest_regulations:main"
+regwatch-register-prompts = "scripts.register_prompts:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+# Layout plano: módulos sueltos en la raíz + paquetes detectados automáticamente.
+# Declarar el build-system hace el proyecto instalable, así `uv sync` lo instala en modo
+# editable y `from graph.nodes import ...` resuelve desde cualquier sitio (tests, scripts, Docker).
+[tool.setuptools]
+py-modules = ["config", "retriever"]
+
+[tool.setuptools.packages.find]
+include = ["graph*", "tools*", "observability*", "evals*", "scripts*", "api*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "evals"]
