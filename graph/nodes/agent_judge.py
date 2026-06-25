@@ -1,9 +1,13 @@
 import json
+import logging
+
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langfuse.decorators import observe
 from graph.state import RegWatchState
 from graph.schemas import JudgeScores
+
+logger = logging.getLogger(__name__)
 
 llm_judge = ChatOpenAI(model="gpt-4o", temperature=0).with_structured_output(JudgeScores)
 
@@ -30,6 +34,11 @@ def agent_judge(state: RegWatchState) -> dict:
         "report": json.dumps(state["gap_report"], ensure_ascii=False),
         "document": state["extracted_text"][:2000],
     })
+    logger.info(
+        "agent_judge: attempt=%d overall=%.1f approved=%s (legal=%d citation=%d action=%d)",
+        attempt, scores.overall_score, scores.approved,
+        scores.legal_accuracy, scores.citation_quality, scores.actionability,
+    )
     return {
         "judge_scores": scores.model_dump(),
         "judge_attempt": attempt,

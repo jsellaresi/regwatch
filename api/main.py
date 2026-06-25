@@ -1,4 +1,5 @@
 import json
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,10 +8,13 @@ from langgraph.types import Command
 from langchain_openai import ChatOpenAI
 from graph import get_graph
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     get_graph()
+    logger.info("RegWatch graph initialized")
     yield
 
 
@@ -30,6 +34,7 @@ SESSION_BUFFER: dict[str, list] = {}
 async def analyze_document(file: UploadFile, policy_id: str = Form(...)):
     graph = get_graph()
     document_bytes = await file.read()
+    logger.info("analyze: policy_id=%s file=%s size=%d bytes", policy_id, file.filename, len(document_bytes))
     config = {"configurable": {"thread_id": f"{policy_id}:{file.filename}"}}
     result = graph.invoke(
         {
@@ -41,6 +46,7 @@ async def analyze_document(file: UploadFile, policy_id: str = Form(...)):
         },
         config=config,
     )
+    logger.info("analyze complete: policy_id=%s", policy_id)
     return result["final_report"]
 
 
@@ -48,6 +54,7 @@ async def analyze_document(file: UploadFile, policy_id: str = Form(...)):
 async def analyze_stream(file: UploadFile, policy_id: str = Form(...)):
     document_bytes = await file.read()
     thread_id = f"{policy_id}:{file.filename}"
+    logger.info("analyze/stream: policy_id=%s file=%s", policy_id, file.filename)
     config = {"configurable": {"thread_id": thread_id}}
     init = {
         "document_bytes": document_bytes,
@@ -63,6 +70,7 @@ async def analyze_stream(file: UploadFile, policy_id: str = Form(...)):
             for node_name, node_output in chunk.items():
                 yield {"event": "node", "data": json.dumps({"node": node_name})}
                 if node_name == "__interrupt__":
+                    logger.info("stream: human review triggered thread_id=%s", thread_id)
                     yield {"event": "needs_review", "data": json.dumps(node_output)}
         final = graph.get_state(config).values.get("final_report", {})
         yield {"event": "done", "data": json.dumps(final)}
@@ -72,6 +80,7 @@ async def analyze_stream(file: UploadFile, policy_id: str = Form(...)):
 
 @app.post("/resume")
 async def resume(thread_id: str = Form(...), decision: str = Form(...)):
+    logger.info("resume: thread_id=%s decision=%s", thread_id, decision)
     config = {"configurable": {"thread_id": thread_id}}
     result = get_graph().invoke(Command(resume=decision), config=config)
     return result["final_report"]
@@ -79,6 +88,7 @@ async def resume(thread_id: str = Form(...), decision: str = Form(...)):
 
 @app.post("/chat")
 async def chat(thread_id: str = Form(...), question: str = Form(...)):
+    logger.info("chat: thread_id=%s", thread_id)
     config = {"configurable": {"thread_id": thread_id}}
     report = get_graph().get_state(config).values.get("final_report", {})
     history = SESSION_BUFFER.setdefault(thread_id, [])

@@ -1,17 +1,27 @@
+import logging
+
 from graph.state import RegWatchState
 from tools.regulation_tools import create_jira_ticket
+
+logger = logging.getLogger(__name__)
 
 PRIORITY = {"HIGH": "High", "MEDIUM": "Medium", "LOW": "Low"}
 
 
 def create_tickets(state: RegWatchState) -> dict:
     ticket_ids = []
-    for gap in state["gap_report"].get("gaps", []):
-        if gap["risk_level"] in ("HIGH", "MEDIUM"):
-            result = create_jira_ticket.invoke({
-                "summary": f"[{gap['regulation_ref']}] {gap['gap_description'][:80]}",
-                "description": gap["remediation"],
-                "priority": PRIORITY[gap["risk_level"]],
-            })
-            ticket_ids.append(result)
+    gaps = state["gap_report"].get("gaps", [])
+    eligible = [g for g in gaps if g["risk_level"] in ("HIGH", "MEDIUM")]
+    logger.info("create_tickets: %d eligible gaps (HIGH/MEDIUM) out of %d total", len(eligible), len(gaps))
+    for gap in eligible:
+        result = create_jira_ticket.invoke({
+            "summary": f"[{gap['regulation_ref']}] {gap['gap_description'][:80]}",
+            "description": gap["remediation"],
+            "priority": PRIORITY[gap["risk_level"]],
+        })
+        if result.startswith("Error"):
+            logger.error("create_tickets: JIRA error for [%s]", gap["regulation_ref"])
+        else:
+            logger.info("create_tickets: %s for [%s]", result, gap["regulation_ref"])
+        ticket_ids.append(result)
     return {"jira_ticket_ids": ticket_ids}

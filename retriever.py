@@ -1,3 +1,5 @@
+import logging
+
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import PGVector
 from langchain_community.retrievers import BM25Retriever
@@ -5,6 +7,8 @@ from langchain.retrievers import EnsembleRetriever
 from langchain_core.documents import Document
 from sqlalchemy import create_engine, text
 from config import DATABASE_URL
+
+logger = logging.getLogger(__name__)
 
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
@@ -15,7 +19,9 @@ def _load_chunks_from_db() -> list[Document]:
         rows = conn.execute(text(
             "SELECT document, cmetadata FROM langchain_pg_embedding"
         )).fetchall()
-    return [Document(page_content=r[0], metadata=r[1] or {}) for r in rows]
+    docs = [Document(page_content=r[0], metadata=r[1] or {}) for r in rows]
+    logger.info("_load_chunks_from_db: %d documents loaded", len(docs))
+    return docs
 
 
 _vectorstore = PGVector(

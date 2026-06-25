@@ -1,3 +1,4 @@
+import logging
 from functools import lru_cache
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -17,6 +18,8 @@ from graph.nodes import (
     format_report, create_tickets, store_episodic_memory,
 )
 from config import DATABASE_URL
+
+logger = logging.getLogger(__name__)
 
 
 def create_blocked_end(state: RegWatchState) -> dict:
@@ -87,6 +90,7 @@ def create_regwatch_graph(checkpointer):
 
 @lru_cache(maxsize=1)
 def get_graph():
+    logger.info("get_graph: initializing connection pool")
     pool = ConnectionPool(
         conninfo=DATABASE_URL,
         max_size=20,
@@ -95,4 +99,6 @@ def get_graph():
     )
     checkpointer = PostgresSaver(pool)
     checkpointer.setup()
-    return create_regwatch_graph(checkpointer)
+    graph = create_regwatch_graph(checkpointer)
+    logger.info("get_graph: graph ready")
+    return graph

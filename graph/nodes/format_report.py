@@ -1,5 +1,9 @@
+import logging
+
 from graph.state import RegWatchState
 from graph.nodes.memory import diff_with_memory
+
+logger = logging.getLogger(__name__)
 
 
 def format_report(state: RegWatchState) -> dict:
@@ -15,4 +19,8 @@ def format_report(state: RegWatchState) -> dict:
         "trace_url": state.get("trace_url", ""),
         "human_reviewed": bool(state.get("human_decision")),
     }
+    logger.info(
+        "format_report: %d gaps, human_reviewed=%s, prompt_version=%s",
+        len(final["gaps"]), final["human_reviewed"], final["prompt_version"],
+    )
     return {"final_report": final, "memory_diff": memory_diff}

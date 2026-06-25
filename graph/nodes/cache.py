@@ -1,8 +1,12 @@
 import hashlib
 import json
+import logging
+
 import psycopg2
 from graph.state import RegWatchState
 from config import DATABASE_URL, CACHE_TTL_SECONDS
+
+logger = logging.getLogger(__name__)
 
 
 def _hash(document_bytes: bytes) -> str:
@@ -20,11 +24,14 @@ def check_cache(state: RegWatchState) -> dict:
         )
         row = cur.fetchone()
     if row:
+        logger.info("check_cache: HIT hash=%s", doc_hash[:12])
         return {"doc_hash": doc_hash, "cache_hit": True, "final_report": row[0]}
+    logger.info("check_cache: MISS hash=%s", doc_hash[:12])
     return {"doc_hash": doc_hash, "cache_hit": False}
 
 
 def write_cache(state: RegWatchState) -> dict:
+    logger.info("write_cache: hash=%s", state["doc_hash"][:12])
     with psycopg2.connect(DATABASE_URL) as conn, conn.cursor() as cur:
         cur.execute(
             """INSERT INTO analysis_cache (doc_hash, final_report)

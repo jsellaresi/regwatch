@@ -1,6 +1,10 @@
+import logging
+
 import requests
 from langchain_core.tools import tool
 from config import EURLEX_BASE_URL, JIRA_API_TOKEN
+
+logger = logging.getLogger(__name__)
 
 
 @tool
@@ -14,6 +18,7 @@ def get_regulation_amendments(regulation_id: str, since_date: str) -> str:
     """
     url = f"{EURLEX_BASE_URL}/document/{regulation_id}/amendments"
     response = requests.get(url, params={"since": since_date}, timeout=10)
+    logger.info("EUR-Lex: GET amendments for %s since %s → status %d", regulation_id, since_date, response.status_code)
     if response.status_code != 200:
         return f"No se encontraron enmiendas para {regulation_id}"
     data = response.json()
@@ -52,9 +57,11 @@ def create_jira_ticket(summary: str, description: str, priority: str) -> str:
         headers=headers,
         timeout=10,
     )
+    logger.info("JIRA: create ticket priority=%s → status %d", priority, response.status_code)
     if response.status_code == 201:
         ticket_id = response.json()["key"]
         return f"Ticket creado: {ticket_id}"
+    logger.error("JIRA: ticket creation failed with status %d", response.status_code)
     return f"Error creando ticket: {response.text}"
 
 

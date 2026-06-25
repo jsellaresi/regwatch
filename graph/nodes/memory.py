@@ -1,7 +1,11 @@
 import json
+import logging
+
 import psycopg2
 from graph.state import RegWatchState
 from config import DATABASE_URL
+
+logger = logging.getLogger(__name__)
 
 
 def _gap_keys(report: dict) -> set[str]:
@@ -16,11 +20,17 @@ def diff_with_memory(state: RegWatchState) -> dict:
         row = cur.fetchone()
     prev = _gap_keys(row[0]) if row else set()
     curr = _gap_keys(state["gap_report"])
-    return {"memory_diff": {
+    memory_diff = {
         "resolved":   sorted(prev - curr),
         "still_open": sorted(prev & curr),
         "new":        sorted(curr - prev),
-    }}
+    }
+    logger.info(
+        "memory_diff: policy_id=%s new=%d resolved=%d still_open=%d",
+        state["policy_id"], len(memory_diff["new"]),
+        len(memory_diff["resolved"]), len(memory_diff["still_open"]),
+    )
+    return {"memory_diff": memory_diff}
 
 
 def store_episodic_memory(state: RegWatchState) -> dict:
@@ -28,4 +38,5 @@ def store_episodic_memory(state: RegWatchState) -> dict:
         cur.execute(
             "INSERT INTO policy_episodes (policy_id, gap_report) VALUES (%s, %s)",
             (state["policy_id"], json.dumps(state["gap_report"])))
+    logger.info("episodic_memory: stored for policy_id=%s", state["policy_id"])
     return {}

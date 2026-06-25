@@ -1,6 +1,9 @@
+import logging
 import re
 from langchain_anthropic import ChatAnthropic
 from graph.state import RegWatchState
+
+logger = logging.getLogger(__name__)
 
 llm_guard = ChatAnthropic(model="claude-haiku-4-5-20251001", max_tokens=256)
 
@@ -23,6 +26,7 @@ def input_guardrail(state: RegWatchState) -> dict:
 
     for pattern in INJECTION_PATTERNS + PII_PATTERNS:
         if re.search(pattern, text, re.IGNORECASE):
+            logger.warning("input_guardrail: BLOCKED by pattern match")
             return {"guardrail_passed": False, "guardrail_reason": f"Pattern match: {pattern}"}
 
     response = llm_guard.invoke(
@@ -37,8 +41,10 @@ Responde SOLO con: SAFE o BLOCKED: <razón breve>"""
     )
     verdict = response.content.strip()
     if verdict.startswith("BLOCKED"):
+        logger.warning("input_guardrail: BLOCKED by LLM check")
         return {"guardrail_passed": False, "guardrail_reason": verdict}
 
+    logger.info("input_guardrail: PASSED")
     return {"guardrail_passed": True, "guardrail_reason": ""}
 
 
@@ -56,12 +62,15 @@ def output_guardrail(state: RegWatchState) -> dict:
     for gap in gaps:
         ref = gap.get("regulation_ref", "")
         if not VALID_CITATION_RE.match(ref):
+            attempt = state.get("output_guardrail_attempt", 0) + 1
+            logger.warning("output_guardrail: invalid citation '%s' (attempt %d)", ref, attempt)
             return {
                 "guardrail_passed": False,
                 "guardrail_reason": f"Cita inválida: '{ref}'. Formato esperado: 'GDPR Art. 17(1)'",
-                "output_guardrail_attempt": state.get("output_guardrail_attempt", 0) + 1,
+                "output_guardrail_attempt": attempt,
             }
 
+    logger.info("output_guardrail: PASSED — %d gaps validated", len(gaps))
     return {"guardrail_passed": True, "guardrail_reason": ""}
 
 

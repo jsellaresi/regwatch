@@ -1,9 +1,13 @@
+import logging
+
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.prebuilt import ToolNode
 from langfuse.decorators import observe
 from tools.regulation_tools import ENRICH_TOOLS
 from graph.state import RegWatchState
+
+logger = logging.getLogger(__name__)
 
 llm_enrich = ChatAnthropic(model="claude-sonnet-4-6").bind_tools(ENRICH_TOOLS)
 tools_node = ToolNode(ENRICH_TOOLS)
@@ -22,6 +26,10 @@ def enrich_agent(state: RegWatchState) -> dict:
         HumanMessage(content=f"Documento de política:\n{state['extracted_text'][:3000]}"),
     ]
     response = llm_enrich.invoke(msgs)
+    if getattr(response, "tool_calls", None):
+        logger.info("enrich_agent: %d tool call(s) requested", len(response.tool_calls))
+    else:
+        logger.info("enrich_agent: no tool calls, enrichment complete")
     return {"messages": [response]}
 
 
@@ -33,4 +41,5 @@ def route_enrich(state: RegWatchState) -> str:
 def collect_tool_results(state: RegWatchState) -> dict:
     from langchain_core.messages import ToolMessage
     results = [m.content for m in state["messages"] if isinstance(m, ToolMessage)]
+    logger.info("collect_tool_results: %d tool results", len(results))
     return {"tool_results": [{"result": r} for r in results]}

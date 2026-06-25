@@ -1,9 +1,13 @@
+import logging
+
 import fitz
 import base64
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 from langfuse.decorators import observe, langfuse_context
 from graph.state import RegWatchState
+
+logger = logging.getLogger(__name__)
 
 llm_vision = ChatAnthropic(model="claude-sonnet-4-6", max_tokens=4096)
 
@@ -12,6 +16,7 @@ llm_vision = ChatAnthropic(model="claude-sonnet-4-6", max_tokens=4096)
 def multimodal_extract(state: RegWatchState) -> dict:
     trace_url = langfuse_context.get_current_trace_url()
     doc = fitz.open(stream=state["document_bytes"], filetype="pdf")
+    logger.info("multimodal_extract: %s — %d pages", state["document_name"], len(doc))
 
     full_text_parts = []
     image_descriptions = []
@@ -51,6 +56,10 @@ def multimodal_extract(state: RegWatchState) -> dict:
         full_text_parts.append(page_text)
         image_descriptions.append(img_b64)
 
+    logger.info(
+        "multimodal_extract complete: %d text pages, %d vision pages",
+        len(full_text_parts) - len(image_descriptions), len(image_descriptions),
+    )
     return {
         "extracted_text": "\n\n".join(full_text_parts),
         "extracted_images": image_descriptions,
