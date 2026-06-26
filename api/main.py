@@ -58,10 +58,11 @@ async def analyze_document(file: UploadFile, policy_id: str = Form(...)):
 
 
 @app.post("/analyze/stream")
-async def analyze_stream(file: UploadFile, policy_id: str = Form(...)):
+async def analyze_stream(file: UploadFile, policy_id: str = Form(...), thread_id: str = Form(None)):
     document_bytes = await file.read()
-    thread_id = f"{policy_id}:{file.filename}"
-    logger.info("analyze/stream: policy_id=%s file=%s", policy_id, file.filename)
+    if not thread_id:
+        thread_id = f"{policy_id}:{file.filename}"
+    logger.info("analyze/stream: policy_id=%s file=%s thread_id=%s", policy_id, file.filename, thread_id)
     config = {"configurable": {"thread_id": thread_id}}
     init = {
         "document_bytes": document_bytes,

@@ -18,6 +18,11 @@ const NODE_LABELS = {
   store_episodic_memory: 'Memoria',
 }
 
+// Steps completed before the HITL checkpoint — used to mark progress on restore/fallback
+const PRE_HITL_LABELS = ['Cache','Extracción','Guardrail entrada','Retrieval','Reranking',
+  'Tools','Análisis','Guardrail salida','Judge','Revisión humana']
+const ALL_LABELS = [...new Set(Object.values(NODE_LABELS))]
+
 export function useAnalysis() {
   const completedNodes = ref([])
   const report = ref(null)
@@ -45,11 +50,14 @@ export function useAnalysis() {
     report.value = null
     needsReview.value = null
     chatHistory.value = []
-    threadId.value = `${policyId}:${file.name}`
+    // Append a run timestamp so each fresh analysis gets its own LangGraph thread.
+    // Reusing the same thread_id on a HITL-paused thread returns an empty stream.
+    threadId.value = `${policyId}:${file.name}:${Date.now()}`
     sessionStorage.setItem('rw_thread_id', threadId.value)
     const form = new FormData()
     form.append('file', file)
     form.append('policy_id', policyId)
+    form.append('thread_id', threadId.value)
 
     _abort = new AbortController()
     let reader
@@ -89,6 +97,26 @@ export function useAnalysis() {
     }
     _abort = null
     running.value = false
+
+    // Fallback: if the stream was aborted before we could process the events
+    // (ERR_ABORTED on SSE close), fetch the final state from the API
+    if (!report.value && !needsReview.value) {
+      try {
+        const r = await fetch(`/state/${encodeURIComponent(threadId.value)}`)
+        const data = await r.json()
+        if (data?.status === 'needs_review') {
+          needsReview.value = data
+          for (const label of PRE_HITL_LABELS) {
+            if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
+          }
+        } else if (data?.status === 'completed') {
+          report.value = data
+          for (const label of ALL_LABELS) {
+            if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
+          }
+        }
+      } catch (_) {}
+    }
   }
 
   async function resume(decision) {
@@ -124,8 +152,17 @@ export function useAnalysis() {
         _pollUntilDone(saved)
         return
       }
-      if (data.status === 'completed') report.value = data
-      else if (data.status === 'needs_review') needsReview.value = data
+      if (data.status === 'completed') {
+        report.value = data
+        for (const label of ALL_LABELS) {
+          if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
+        }
+      } else if (data.status === 'needs_review') {
+        needsReview.value = data
+        for (const label of PRE_HITL_LABELS) {
+          if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
+        }
+      }
     } catch (_) {}
   }
 
@@ -139,14 +176,12 @@ export function useAnalysis() {
         running.value = false
         if (data.status === 'completed') {
           report.value = data
-          // All steps done
-          for (const label of Object.values(NODE_LABELS)) {
+          for (const label of ALL_LABELS) {
             if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
           }
         } else if (data.status === 'needs_review') {
           needsReview.value = data
-          // Mark steps up through judge as done
-          for (const label of ['Cache','Extracción','Guardrail entrada','Retrieval','Reranking','Tools','Análisis','Guardrail salida','Judge','Revisión humana']) {
+          for (const label of PRE_HITL_LABELS) {
             if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
           }
         }
