@@ -1,7 +1,7 @@
 import logging
 
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from langgraph.prebuilt import ToolNode
 from langfuse import observe
 from tools.regulation_tools import ENRICH_TOOLS
@@ -21,10 +21,16 @@ ENRICH_SYSTEM = (
 
 @observe(name="enrich_agent")
 def enrich_agent(state: RegWatchState) -> dict:
-    msgs = state.get("messages") or [
-        SystemMessage(content=ENRICH_SYSTEM),
-        HumanMessage(content=f"Documento de política:\n{state['extracted_text'][:3000]}"),
-    ]
+    existing = state.get("messages") or []
+    if existing and isinstance(existing[-1], ToolMessage):
+        # Mid-tool-loop: continue with accumulated messages
+        msgs = existing
+    else:
+        # Fresh start (or stale checkpoint): rebuild from scratch
+        msgs = [
+            SystemMessage(content=ENRICH_SYSTEM),
+            HumanMessage(content=f"Documento de política:\n{state['extracted_text'][:3000]}"),
+        ]
     response = llm_enrich.invoke(msgs)
     if getattr(response, "tool_calls", None):
         logger.info("enrich_agent: %d tool call(s) requested", len(response.tool_calls))
