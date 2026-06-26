@@ -1,15 +1,17 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useAnalysis } from '../composables/useAnalysis'
 
-const { completedNodes, report, needsReview, running, chatHistory, chatLoading, analyze, resume, chat, restoreSession, NODE_LABELS } = useAnalysis()
+const { completedNodes, report, needsReview, running, chatHistory, chatLoading, analyze, resume, chat, restoreSession, cancel, NODE_LABELS } = useAnalysis()
 
 onMounted(() => restoreSession())
+onUnmounted(() => { if (running.value) cancel() })
 const policyId = ref('policy-001')
 const file = ref(null)
 const chatInput = ref('')
 
-const PIPELINE = Object.values(NODE_LABELS)
+// Deduplicate: tools_node / collect_tool_results alias to 'Tools' — keep each label once
+const PIPELINE = [...new Set(Object.values(NODE_LABELS))]
 
 function onFile(e) { file.value = e.target.files[0] }
 function submit() { if (file.value) analyze(file.value, policyId.value) }
@@ -26,8 +28,6 @@ function isActive(step, i) {
   return completedNodes.value.length === i
 }
 
-const completedCount = computed(() => completedNodes.value.length)
-const totalSteps = PIPELINE.length
 </script>
 
 <template>
@@ -57,15 +57,6 @@ const totalSteps = PIPELINE.length
         </ul>
       </div>
 
-      <div v-if="running || completedCount > 0" class="rw-sidebar-progress">
-        <div class="rw-progress-label">{{ completedCount }} / {{ totalSteps }} nodos</div>
-        <div class="rw-progress-track">
-          <div
-            class="rw-progress-fill"
-            :style="{ width: (completedCount / totalSteps * 100) + '%' }"
-          ></div>
-        </div>
-      </div>
     </aside>
 
     <!-- Main content -->
@@ -77,6 +68,7 @@ const totalSteps = PIPELINE.length
         </div>
         <div v-if="running" class="rw-running-badge">
           <span class="rw-pulse"></span> Analizando
+          <button class="rw-btn-stop" @click="cancel" title="Detener análisis">✕ Detener</button>
         </div>
       </header>
 
@@ -451,6 +443,21 @@ const totalSteps = PIPELINE.length
   border-radius: 20px;
   padding: 5px 12px;
   white-space: nowrap;
+}
+
+.rw-btn-stop {
+  margin-left: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--risk-high) 15%, transparent);
+  color: var(--risk-high);
+  border: 1px solid color-mix(in srgb, var(--risk-high) 35%, transparent);
+  border-radius: 12px;
+  transition: background 0.15s;
+}
+.rw-btn-stop:hover {
+  background: color-mix(in srgb, var(--risk-high) 28%, transparent);
 }
 
 .rw-pulse {

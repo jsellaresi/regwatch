@@ -80,6 +80,8 @@ async def analyze_stream(file: UploadFile, policy_id: str = Form(...)):
                         logger.info("stream: human review triggered thread_id=%s", thread_id)
                         interrupts = node_output if isinstance(node_output, (list, tuple)) else [node_output]
                         payload = interrupts[0].value if hasattr(interrupts[0], "value") else {}
+                        # Mark the HITL step as reached in the pipeline before signalling review
+                        yield {"event": "node", "data": json.dumps({"node": "human_review_checkpoint"})}
                         yield {"event": "needs_review", "data": json.dumps(payload)}
                     else:
                         logger.info("stream: node=%s thread_id=%s", node_name, thread_id)
@@ -87,8 +89,11 @@ async def analyze_stream(file: UploadFile, policy_id: str = Form(...)):
             logger.info("stream: pipeline complete, fetching final state thread_id=%s", thread_id)
             state = await graph.aget_state(config)
             final = state.values.get("final_report", {})
-            logger.info("stream: done event thread_id=%s has_report=%s", thread_id, bool(final))
-            yield {"event": "done", "data": json.dumps(final)}
+            if final:
+                logger.info("stream: done event thread_id=%s has_report=True", thread_id)
+                yield {"event": "done", "data": json.dumps(final)}
+            else:
+                logger.info("stream: pipeline paused at HITL, no done event thread_id=%s", thread_id)
         except Exception:
             logger.exception("stream: event_generator error thread_id=%s", thread_id)
             yield {"event": "error", "data": json.dumps({"error": "pipeline failed"})}
@@ -118,8 +123,17 @@ async def resume(thread_id: str = Form(...), decision: str = Form(...)):
 @app.get("/state/{thread_id}")
 async def get_state(thread_id: str):
     config = {"configurable": {"thread_id": thread_id}}
-    values = (await get_graph().aget_state(config)).values
-    return values.get("final_report") or None
+    try:
+        state = await get_graph().aget_state(config)
+    except Exception:
+        return None
+    if state.values.get("final_report"):
+        return {"status": "completed", **state.values["final_report"]}
+    interrupts = [i for task in (state.tasks or []) for i in getattr(task, "interrupts", [])]
+    if interrupts:
+        payload = interrupts[0].value if hasattr(interrupts[0], "value") else {}
+        return {"status": "needs_review", **payload}
+    return None
 
 
 @app.post("/chat")
