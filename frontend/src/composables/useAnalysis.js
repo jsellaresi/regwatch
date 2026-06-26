@@ -21,11 +21,17 @@ export function useAnalysis() {
   const report = ref(null)
   const needsReview = ref(null)
   const running = ref(false)
+  const threadId = ref(null)
+  const chatHistory = ref([])
+  const chatLoading = ref(false)
 
   async function analyze(file, policyId) {
     running.value = true
     completedNodes.value = []
     report.value = null
+    needsReview.value = null
+    chatHistory.value = []
+    threadId.value = `${policyId}:${file.name}`
     const form = new FormData()
     form.append('file', file)
     form.append('policy_id', policyId)
@@ -51,5 +57,32 @@ export function useAnalysis() {
     running.value = false
   }
 
-  return { completedNodes, report, needsReview, running, analyze, NODE_LABELS }
+  async function resume(decision) {
+    const form = new FormData()
+    form.append('thread_id', threadId.value)
+    form.append('decision', decision)
+    needsReview.value = null
+    running.value = true
+    const resp = await fetch('/resume', { method: 'POST', body: form })
+    report.value = await resp.json()
+    running.value = false
+  }
+
+  async function chat(question) {
+    chatHistory.value.push({ role: 'user', text: question })
+    chatLoading.value = true
+    const form = new FormData()
+    form.append('thread_id', threadId.value)
+    form.append('question', question)
+    const resp = await fetch('/chat', { method: 'POST', body: form })
+    const { answer } = await resp.json()
+    chatHistory.value.push({ role: 'assistant', text: answer })
+    chatLoading.value = false
+  }
+
+  return {
+    completedNodes, report, needsReview, running,
+    threadId, chatHistory, chatLoading,
+    analyze, resume, chat, NODE_LABELS,
+  }
 }

@@ -2,14 +2,21 @@
 import { ref, computed } from 'vue'
 import { useAnalysis } from '../composables/useAnalysis'
 
-const { completedNodes, report, needsReview, running, analyze, NODE_LABELS } = useAnalysis()
+const { completedNodes, report, needsReview, running, chatHistory, chatLoading, analyze, resume, chat, NODE_LABELS } = useAnalysis()
 const policyId = ref('policy-001')
 const file = ref(null)
+const chatInput = ref('')
 
 const PIPELINE = Object.values(NODE_LABELS)
 
 function onFile(e) { file.value = e.target.files[0] }
 function submit() { if (file.value) analyze(file.value, policyId.value) }
+function sendChat() {
+  const q = chatInput.value.trim()
+  if (!q || chatLoading.value) return
+  chatInput.value = ''
+  chat(q)
+}
 
 function isActive(step, i) {
   if (completedNodes.value.includes(step)) return false
@@ -137,10 +144,10 @@ const totalSteps = PIPELINE.length
         <div class="rw-review-icon">!</div>
         <div class="rw-review-body">
           <p class="rw-review-title">Revisión humana requerida</p>
-          <p class="rw-review-sub">El judge no aprobó el informe automáticamente. Revise el análisis antes de continuar.</p>
+          <p class="rw-review-sub">{{ needsReview.reason || 'El judge no aprobó el informe automáticamente. Revise el análisis antes de continuar.' }}</p>
           <div class="rw-review-actions">
-            <button class="rw-btn-approve" @click="$emit('resume', 'approve')">Aprobar informe</button>
-            <button class="rw-btn-reject" @click="$emit('resume', 'reject')">Rechazar</button>
+            <button class="rw-btn-approve" @click="resume('approve')">Aprobar informe</button>
+            <button class="rw-btn-reject" @click="resume('reject')">Rechazar</button>
           </div>
         </div>
       </section>
@@ -222,6 +229,36 @@ const totalSteps = PIPELINE.length
               <path d="M2 10L10 2M5 2h5v5"/>
             </svg>
           </a>
+        </div>
+
+        <!-- Chat -->
+        <div class="rw-card rw-chat">
+          <h2 class="rw-section-title">Preguntas sobre el informe</h2>
+          <div class="rw-chat-history" ref="chatEl">
+            <div
+              v-for="(msg, i) in chatHistory"
+              :key="i"
+              class="rw-chat-msg"
+              :class="msg.role"
+            >
+              <span class="rw-chat-role">{{ msg.role === 'user' ? 'Tú' : 'RegWatch' }}</span>
+              <p class="rw-chat-text">{{ msg.text }}</p>
+            </div>
+            <div v-if="chatLoading" class="rw-chat-msg assistant rw-chat-loading">
+              <span class="rw-chat-role">RegWatch</span>
+              <span class="rw-spinner rw-spinner-dark"></span>
+            </div>
+          </div>
+          <div class="rw-chat-input-row">
+            <input
+              class="rw-input rw-chat-input"
+              v-model="chatInput"
+              placeholder="Pregunta sobre los gaps o las regulaciones…"
+              :disabled="chatLoading"
+              @keydown.enter="sendChat"
+            />
+            <button class="rw-btn-primary" :disabled="chatLoading || !chatInput.trim()" @click="sendChat">Enviar</button>
+          </div>
         </div>
 
       </section>
@@ -971,6 +1008,69 @@ const totalSteps = PIPELINE.length
 .rw-input:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+/* ── Chat ──────────────────────────────────────────────── */
+.rw-chat {
+  padding: 0;
+  overflow: hidden;
+}
+
+.rw-chat-history {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  min-height: 60px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.rw-chat-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rw-chat-role {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.rw-chat-msg.user .rw-chat-role { color: var(--accent); }
+
+.rw-chat-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+.rw-chat-loading {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.rw-spinner-dark {
+  border-color: var(--border);
+  border-top-color: var(--accent);
+}
+
+.rw-chat-input-row {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 2rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.rw-chat-input {
+  flex: 1;
+  width: auto;
 }
 
 /* ── Reduced motion ────────────────────────────────────── */

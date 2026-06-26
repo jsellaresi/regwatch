@@ -12,8 +12,8 @@ def human_review_checkpoint(state: RegWatchState) -> dict:
         state.get("policy_id", "?"), state.get("judge_attempt", 0),
     )
     decision = interrupt({
-        "reason": "El judge no aprobó el informe tras los reintentos máximos.",
-        "gap_report": state["gap_report"],
+        "reason": state.get("error") or "El judge no aprobó el informe tras los reintentos máximos.",
+        "gap_report": state.get("gap_report", {}),
         "judge_scores": state.get("judge_scores", {}),
         "trace_url": state.get("trace_url", ""),
     })
