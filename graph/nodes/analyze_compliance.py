@@ -1,7 +1,7 @@
 import logging
 
 from langchain_anthropic import ChatAnthropic
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import SystemMessage, HumanMessage
 from langfuse import observe
 from graph.state import RegWatchState
 from graph.schemas import GapReport
@@ -27,19 +27,16 @@ def analyze_compliance(state: RegWatchState) -> dict:
                                   for r in state["retrieved_regulations"])
         tool_context = "\n".join(t.get("result", "") for t in state.get("tool_results", []))
 
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
-            ("human",
-             "## Documento a analizar\n{document}\n\n"
-             "## Regulaciones relevantes recuperadas\n{regulations}\n\n"
-             "## Información adicional de herramientas\n{tools}\n\n"
-             "Genera el informe de compliance."),
-        ])
-        report: GapReport = (prompt | analyzer).invoke({
-            "document": state["extracted_text"][:6000],
-            "regulations": reg_context[:4000],
-            "tools": tool_context[:1000],
-        })
+        msgs = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=(
+                f"## Documento a analizar\n{state['extracted_text'][:6000]}\n\n"
+                f"## Regulaciones relevantes recuperadas\n{reg_context[:4000]}\n\n"
+                f"## Información adicional de herramientas\n{tool_context[:1000]}\n\n"
+                "Genera el informe de compliance."
+            )),
+        ]
+        report: GapReport = analyzer.invoke(msgs)
         logger.info("analyze_compliance: %d gaps identified", len(report.gaps))
         return {"gap_report": report.model_dump(), "prompt_version": prompt_version, "error": ""}
     except Exception as e:

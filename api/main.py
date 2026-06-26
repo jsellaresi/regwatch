@@ -78,7 +78,9 @@ async def analyze_stream(file: UploadFile, policy_id: str = Form(...)):
                 yield {"event": "node", "data": json.dumps({"node": node_name})}
                 if node_name == "__interrupt__":
                     logger.info("stream: human review triggered thread_id=%s", thread_id)
-                    yield {"event": "needs_review", "data": json.dumps(node_output)}
+                    interrupts = node_output if isinstance(node_output, (list, tuple)) else [node_output]
+                    payload = interrupts[0].value if hasattr(interrupts[0], "value") else {}
+                    yield {"event": "needs_review", "data": json.dumps(payload)}
         final = graph.get_state(config).values.get("final_report", {})
         yield {"event": "done", "data": json.dumps(final)}
 
