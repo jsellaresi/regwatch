@@ -12,6 +12,7 @@ services:
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
       - ./migrations/001_cache.sql:/docker-entrypoint-initdb.d/01-cache.sql:ro
       - ./migrations/002_memory.sql:/docker-entrypoint-initdb.d/02-memory.sql:ro
+      - ./migrations/003_fix_llm_cache.sql:/docker-entrypoint-initdb.d/03-fix-llm-cache.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U regwatch -d regwatch"]
       interval: 5s

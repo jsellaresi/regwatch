@@ -28,7 +28,22 @@ langfuse = Langfuse(
           or "https://cloud.langfuse.com"),
 )
 
+import hashlib
 from langchain_core.globals import set_llm_cache
 from langchain_community.cache import SQLAlchemyCache
 from sqlalchemy import create_engine
-set_llm_cache(SQLAlchemyCache(create_engine(DATABASE_URL)))
+
+
+class _HashedPromptCache(SQLAlchemyCache):
+    @staticmethod
+    def _h(prompt: str) -> str:
+        return hashlib.md5(prompt.encode()).hexdigest()
+
+    def lookup(self, prompt, llm_string):
+        return super().lookup(self._h(prompt), llm_string)
+
+    def update(self, prompt, llm_string, return_val):
+        return super().update(self._h(prompt), llm_string, return_val)
+
+
+set_llm_cache(_HashedPromptCache(create_engine(DATABASE_URL)))
