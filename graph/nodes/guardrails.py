@@ -81,6 +81,8 @@ def route_after_input_guardrail(state: RegWatchState) -> list[str] | str:
 
 
 def route_after_output_guardrail(state: RegWatchState) -> str:
+    if state.get("error"):
+        return "human_review_checkpoint"
     if state["guardrail_passed"]:
         return "agent_judge"
     if state.get("output_guardrail_attempt", 0) >= MAX_OUTPUT_GUARDRAIL_RETRIES:
