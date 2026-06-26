@@ -6,14 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 from langgraph.types import Command
 from langchain_openai import ChatOpenAI
-from graph import get_graph
+from graph import get_graph, init_graph
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    get_graph()
+    await init_graph()
     logger.info("RegWatch graph initialized")
     yield
 

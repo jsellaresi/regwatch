@@ -1,9 +1,7 @@
 import logging
-from functools import lru_cache
 from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.postgres import PostgresSaver
-from psycopg_pool import ConnectionPool
-from psycopg.rows import dict_row
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from psycopg_pool import AsyncConnectionPool
 from graph.state import RegWatchState
 from graph.nodes import (
     check_cache, write_cache, route_after_cache,
@@ -20,6 +18,8 @@ from graph.nodes import (
 from config import DATABASE_URL
 
 logger = logging.getLogger(__name__)
+
+_graph = None
 
 
 def create_blocked_end(state: RegWatchState) -> dict:
@@ -88,17 +88,21 @@ def create_regwatch_graph(checkpointer):
     return b.compile(checkpointer=checkpointer)
 
 
-@lru_cache(maxsize=1)
-def get_graph():
-    logger.info("get_graph: initializing connection pool")
-    pool = ConnectionPool(
+async def init_graph():
+    global _graph
+    logger.info("init_graph: opening async connection pool")
+    pool = AsyncConnectionPool(
         conninfo=DATABASE_URL,
         max_size=20,
-        open=True,
-        kwargs={"autocommit": True, "prepare_threshold": 0, "row_factory": dict_row},
+        open=False,
+        kwargs={"autocommit": True, "prepare_threshold": 0},
     )
-    checkpointer = PostgresSaver(pool)
-    checkpointer.setup()
-    graph = create_regwatch_graph(checkpointer)
-    logger.info("get_graph: graph ready")
-    return graph
+    await pool.open()
+    checkpointer = AsyncPostgresSaver(pool)
+    await checkpointer.setup()
+    _graph = create_regwatch_graph(checkpointer)
+    logger.info("init_graph: graph ready")
+
+
+def get_graph():
+    return _graph
