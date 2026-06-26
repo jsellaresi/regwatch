@@ -58,16 +58,22 @@ Analiza el documento de política interna proporcionado e identifica todos los g
 """
 
 
-def main():
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+def ensure_prompts() -> None:
+    try:
+        langfuse.get_prompt("compliance-analyzer", label="production")
+        logger.info("Prompt compliance-analyzer@production already exists, skipping")
+        return
+    except Exception:
+        pass
     langfuse.create_prompt(
         name="compliance-analyzer",
         prompt=SYSTEM_PROMPT_V2,
         labels=["production"],
         config={"temperature": 0.1},
     )
-    logger.info("Prompt v2 registrado y promovido a producción")
+    logger.info("Prompt compliance-analyzer registrado y promovido a production")
 
 
 if __name__ == "__main__":
-    main()
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    ensure_prompts()

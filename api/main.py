@@ -12,12 +12,14 @@ from sse_starlette.sse import EventSourceResponse
 from langgraph.types import Command
 from langchain_openai import ChatOpenAI
 from graph import get_graph, init_graph
+from scripts.register_prompts import ensure_prompts
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    ensure_prompts()
     await init_graph()
     logger.info("RegWatch graph initialized")
     yield
