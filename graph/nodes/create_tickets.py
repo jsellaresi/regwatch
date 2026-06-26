@@ -2,6 +2,7 @@ import logging
 
 from graph.state import RegWatchState
 from tools.regulation_tools import create_jira_ticket
+from config import JIRA_ENABLED
 
 logger = logging.getLogger(__name__)
 
@@ -9,6 +10,9 @@ PRIORITY = {"HIGH": "High", "MEDIUM": "Medium", "LOW": "Low"}
 
 
 def create_tickets(state: RegWatchState) -> dict:
+    if not JIRA_ENABLED:
+        logger.info("create_tickets: JIRA_ENABLED=false, skipping")
+        return {"jira_ticket_ids": []}
     ticket_ids = []
     gaps = state["gap_report"].get("gaps", [])
     eligible = [g for g in gaps if g["risk_level"] in ("HIGH", "MEDIUM")]

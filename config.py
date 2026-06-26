@@ -16,7 +16,8 @@ ANTHROPIC_API_KEY  = _required("ANTHROPIC_API_KEY")
 OPENAI_API_KEY     = _required("OPENAI_API_KEY")
 COHERE_API_KEY     = os.getenv("COHERE_API_KEY", "")
 DATABASE_URL       = _required("DATABASE_URL")
-JIRA_API_TOKEN     = _required("JIRA_API_TOKEN")
+JIRA_API_TOKEN     = os.getenv("JIRA_API_TOKEN", "")
+JIRA_ENABLED       = os.getenv("JIRA_ENABLED", "false").lower() == "true"
 EURLEX_BASE_URL    = "https://eur-lex.europa.eu/rest"
 
 CACHE_TTL_SECONDS  = 60 * 60 * 24 * 7

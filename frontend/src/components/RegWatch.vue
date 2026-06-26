@@ -1,8 +1,10 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAnalysis } from '../composables/useAnalysis'
 
-const { completedNodes, report, needsReview, running, chatHistory, chatLoading, analyze, resume, chat, NODE_LABELS } = useAnalysis()
+const { completedNodes, report, needsReview, running, chatHistory, chatLoading, analyze, resume, chat, restoreSession, NODE_LABELS } = useAnalysis()
+
+onMounted(() => restoreSession())
 const policyId = ref('policy-001')
 const file = ref(null)
 const chatInput = ref('')

@@ -32,6 +32,7 @@ export function useAnalysis() {
     needsReview.value = null
     chatHistory.value = []
     threadId.value = `${policyId}:${file.name}`
+    sessionStorage.setItem('rw_thread_id', threadId.value)
     const form = new FormData()
     form.append('file', file)
     form.append('policy_id', policyId)
@@ -48,7 +49,10 @@ export function useAnalysis() {
         if (!block.includes('data:')) continue
         const ev = (block.match(/event: (.*)/) || [])[1]
         const data = JSON.parse((block.match(/data: (.*)/) || [])[1] || '{}')
-        if (ev === 'node') completedNodes.value.push(NODE_LABELS[data.node] || data.node)
+        if (ev === 'node') {
+          const label = NODE_LABELS[data.node] || data.node
+          if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
+        }
         if (ev === 'needs_review') needsReview.value = data
         if (ev === 'done') report.value = data
       }
@@ -64,8 +68,24 @@ export function useAnalysis() {
     needsReview.value = null
     running.value = true
     const resp = await fetch('/resume', { method: 'POST', body: form })
-    report.value = await resp.json()
+    const data = await resp.json()
+    if (data.status === 'done') {
+      report.value = data.final_report
+    } else if (data.status === 'needs_review') {
+      needsReview.value = data
+    }
     running.value = false
+  }
+
+  async function restoreSession() {
+    const saved = sessionStorage.getItem('rw_thread_id')
+    if (!saved) return
+    threadId.value = saved
+    try {
+      const resp = await fetch(`/state/${encodeURIComponent(saved)}`)
+      const data = await resp.json()
+      if (data && data.status === 'completed') report.value = data
+    } catch (_) {}
   }
 
   async function chat(question) {
@@ -83,6 +103,6 @@ export function useAnalysis() {
   return {
     completedNodes, report, needsReview, running,
     threadId, chatHistory, chatLoading,
-    analyze, resume, chat, NODE_LABELS,
+    analyze, resume, chat, restoreSession, NODE_LABELS,
   }
 }

@@ -100,8 +100,26 @@ async def analyze_stream(file: UploadFile, policy_id: str = Form(...)):
 async def resume(thread_id: str = Form(...), decision: str = Form(...)):
     logger.info("resume: thread_id=%s decision=%s", thread_id, decision)
     config = {"configurable": {"thread_id": thread_id}}
-    result = get_graph().invoke(Command(resume=decision), config=config)
-    return result["final_report"]
+    result = await get_graph().ainvoke(Command(resume=decision), config=config)
+    if result.get("final_report"):
+        logger.info("resume: completed thread_id=%s", thread_id)
+        return {"status": "done", "final_report": result["final_report"]}
+    # Reject path: re-analysis ran and HITL triggered again
+    state = await get_graph().aget_state(config)
+    interrupts = [i for task in (state.tasks or []) for i in getattr(task, "interrupts", [])]
+    if interrupts:
+        payload = interrupts[0].value if hasattr(interrupts[0], "value") else {}
+        logger.info("resume: re-interrupted thread_id=%s", thread_id)
+        return {"status": "needs_review", **payload}
+    logger.warning("resume: unexpected state thread_id=%s", thread_id)
+    return {"status": "running"}
+
+
+@app.get("/state/{thread_id}")
+async def get_state(thread_id: str):
+    config = {"configurable": {"thread_id": thread_id}}
+    values = (await get_graph().aget_state(config)).values
+    return values.get("final_report") or None
 
 
 @app.post("/chat")

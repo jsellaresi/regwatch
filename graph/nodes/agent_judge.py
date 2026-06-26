@@ -48,7 +48,7 @@ def agent_judge(state: RegWatchState) -> dict:
 
 def route_after_judge(state: RegWatchState) -> str:
     if state["judge_passed"]:
-        return "format_report"
+        return "human_review_checkpoint"
     if state["judge_attempt"] >= MAX_JUDGE_ATTEMPTS:
         return "human_review_checkpoint"
     return "analyze_compliance"

@@ -11,8 +11,12 @@ def human_review_checkpoint(state: RegWatchState) -> dict:
         "human_review: checkpoint triggered for policy_id=%s judge_attempt=%d",
         state.get("policy_id", "?"), state.get("judge_attempt", 0),
     )
+    if state.get("judge_passed"):
+        reason = "El judge aprobó el informe. Revise los gaps antes de crear tickets JIRA."
+    else:
+        reason = state.get("error") or "El judge no aprobó el informe tras los reintentos máximos."
     decision = interrupt({
-        "reason": state.get("error") or "El judge no aprobó el informe tras los reintentos máximos.",
+        "reason": reason,
         "gap_report": state.get("gap_report", {}),
         "judge_scores": state.get("judge_scores", {}),
         "trace_url": state.get("trace_url", ""),
