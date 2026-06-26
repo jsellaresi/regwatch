@@ -73,16 +73,25 @@ async def analyze_stream(file: UploadFile, policy_id: str = Form(...)):
     graph = get_graph()
 
     async def event_generator():
-        async for chunk in graph.astream(init, config=config, stream_mode="updates"):
-            for node_name, node_output in chunk.items():
-                yield {"event": "node", "data": json.dumps({"node": node_name})}
-                if node_name == "__interrupt__":
-                    logger.info("stream: human review triggered thread_id=%s", thread_id)
-                    interrupts = node_output if isinstance(node_output, (list, tuple)) else [node_output]
-                    payload = interrupts[0].value if hasattr(interrupts[0], "value") else {}
-                    yield {"event": "needs_review", "data": json.dumps(payload)}
-        final = graph.get_state(config).values.get("final_report", {})
-        yield {"event": "done", "data": json.dumps(final)}
+        try:
+            async for chunk in graph.astream(init, config=config, stream_mode="updates"):
+                for node_name, node_output in chunk.items():
+                    if node_name == "__interrupt__":
+                        logger.info("stream: human review triggered thread_id=%s", thread_id)
+                        interrupts = node_output if isinstance(node_output, (list, tuple)) else [node_output]
+                        payload = interrupts[0].value if hasattr(interrupts[0], "value") else {}
+                        yield {"event": "needs_review", "data": json.dumps(payload)}
+                    else:
+                        logger.info("stream: node=%s thread_id=%s", node_name, thread_id)
+                        yield {"event": "node", "data": json.dumps({"node": node_name})}
+            logger.info("stream: pipeline complete, fetching final state thread_id=%s", thread_id)
+            state = await graph.aget_state(config)
+            final = state.values.get("final_report", {})
+            logger.info("stream: done event thread_id=%s has_report=%s", thread_id, bool(final))
+            yield {"event": "done", "data": json.dumps(final)}
+        except Exception:
+            logger.exception("stream: event_generator error thread_id=%s", thread_id)
+            yield {"event": "error", "data": json.dumps({"error": "pipeline failed"})}
 
     return EventSourceResponse(event_generator())
 
@@ -99,7 +108,7 @@ async def resume(thread_id: str = Form(...), decision: str = Form(...)):
 async def chat(thread_id: str = Form(...), question: str = Form(...)):
     logger.info("chat: thread_id=%s", thread_id)
     config = {"configurable": {"thread_id": thread_id}}
-    report = get_graph().get_state(config).values.get("final_report", {})
+    report = (await get_graph().aget_state(config)).values.get("final_report", {})
     history = SESSION_BUFFER.setdefault(thread_id, [])
     llm = ChatOpenAI(model="gpt-4o", temperature=0)
     prompt = (f"Informe de compliance:\n{json.dumps(report, ensure_ascii=False)}\n\n"
