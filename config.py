@@ -24,10 +24,11 @@ CACHE_TTL_SECONDS  = 60 * 60 * 24 * 7
 langfuse = Langfuse(
     public_key=_required("LANGFUSE_PUBLIC_KEY"),
     secret_key=_required("LANGFUSE_SECRET_KEY"),
-    host=_required("LANGFUSE_HOST"),
+    host=(os.getenv("LANGFUSE_HOST") or os.getenv("LANGFUSE_BASE_URL")
+          or "https://cloud.langfuse.com"),
 )
 
-from langchain.globals import set_llm_cache
+from langchain_core.globals import set_llm_cache
 from langchain_community.cache import SQLAlchemyCache
 from sqlalchemy import create_engine
 set_llm_cache(SQLAlchemyCache(create_engine(DATABASE_URL)))

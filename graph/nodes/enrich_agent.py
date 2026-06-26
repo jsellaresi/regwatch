@@ -3,7 +3,7 @@ import logging
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.prebuilt import ToolNode
-from langfuse.decorators import observe
+from langfuse import observe
 from tools.regulation_tools import ENRICH_TOOLS
 from graph.state import RegWatchState
 

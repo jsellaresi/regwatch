@@ -3,7 +3,7 @@ import logging
 
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from langfuse.decorators import observe
+from langfuse import observe
 from graph.state import RegWatchState
 from graph.schemas import JudgeScores
 

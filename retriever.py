@@ -3,7 +3,7 @@ import logging
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import PGVector
 from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import EnsembleRetriever
+from langchain_classic.retrievers import EnsembleRetriever
 from langchain_core.documents import Document
 from sqlalchemy import create_engine, text
 from config import DATABASE_URL
@@ -30,10 +30,15 @@ _vectorstore = PGVector(
     collection_name="regulations",
 )
 _semantic = _vectorstore.as_retriever(search_kwargs={"k": 20})
-_bm25 = BM25Retriever.from_documents(_load_chunks_from_db())
-_bm25.k = 20
 
-HYBRID_RETRIEVER = EnsembleRetriever(
-    retrievers=[_semantic, _bm25],
-    weights=[0.5, 0.5],
-)
+_chunks = _load_chunks_from_db()
+if _chunks:
+    _bm25 = BM25Retriever.from_documents(_chunks)
+    _bm25.k = 20
+    HYBRID_RETRIEVER = EnsembleRetriever(
+        retrievers=[_semantic, _bm25],
+        weights=[0.5, 0.5],
+    )
+else:
+    logger.warning("No regulation chunks in DB — using semantic-only retrieval")
+    HYBRID_RETRIEVER = _semantic
