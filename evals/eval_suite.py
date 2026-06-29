@@ -1,10 +1,11 @@
 import re
 from langchain_anthropic import ChatAnthropic
+from config import MODEL_ANALYZER
 from evals.golden_dataset import GOLDEN_CASES
 from graph.schemas import GapReport
 from config import langfuse
 
-llm = ChatAnthropic(model="claude-sonnet-4-6", temperature=0).with_structured_output(GapReport)
+llm = ChatAnthropic(model=MODEL_ANALYZER, temperature=0).with_structured_output(GapReport)
 
 
 def run_single_eval(case: dict) -> dict:

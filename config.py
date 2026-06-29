@@ -21,6 +21,17 @@ JIRA_API_TOKEN     = os.getenv("JIRA_API_TOKEN", "")
 JIRA_ENABLED       = os.getenv("JIRA_ENABLED", "false").lower() == "true"
 EURLEX_BASE_URL    = "https://eur-lex.europa.eu/rest"
 
+# ── Model names ──────────────────────────────────────────────────────────────
+MODEL_ANALYZER      = "claude-3-5-haiku-20241022"
+MODEL_ENRICH        = "claude-3-5-haiku-20241022"
+MODEL_VISION        = "claude-sonnet-4-6"
+MODEL_GUARDRAIL     = "claude-haiku-4-5-20251001"
+MODEL_JUDGE         = "gpt-4o"
+MODEL_CHAT          = "gpt-4o"
+MODEL_EMBEDDINGS    = "text-embedding-3-small"
+MODEL_RERANK_LOCAL  = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+MODEL_RERANK_COHERE = "rerank-multilingual-v3.0"
+
 CACHE_TTL_SECONDS  = 60 * 60 * 24 * 7
 
 langfuse = Langfuse(

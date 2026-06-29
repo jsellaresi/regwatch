@@ -2,7 +2,7 @@ import logging
 
 from langchain_core.documents import Document
 from graph.state import RegWatchState
-from config import COHERE_API_KEY
+from config import COHERE_API_KEY, MODEL_RERANK_COHERE, MODEL_RERANK_LOCAL
 
 try:
     from cohere.errors.unauthorized_error import UnauthorizedError as _CohereUnauthorized
@@ -18,9 +18,9 @@ _local_ce = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 if COHERE_API_KEY:
     from langchain_cohere import CohereRerank
-    _cohere = CohereRerank(model="rerank-multilingual-v3.0",
+    _cohere = CohereRerank(model=MODEL_RERANK_COHERE,
                            top_n=TOP_N, cohere_api_key=COHERE_API_KEY)
-    logger.info("rerank: usando Cohere rerank-multilingual-v3.0")
+    logger.info("rerank: usando Cohere %s", MODEL_RERANK_COHERE)
 else:
     logger.info("rerank: usando local cross-encoder/ms-marco-MiniLM-L-6-v2")
 

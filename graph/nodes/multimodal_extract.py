@@ -3,6 +3,7 @@ import logging
 import fitz
 import base64
 from langchain_anthropic import ChatAnthropic
+from config import MODEL_VISION
 from langchain_core.messages import HumanMessage
 from langfuse import observe
 from config import langfuse
@@ -10,7 +11,7 @@ from graph.state import RegWatchState
 
 logger = logging.getLogger(__name__)
 
-llm_vision = ChatAnthropic(model="claude-sonnet-4-6", max_tokens=4096)
+llm_vision = ChatAnthropic(model=MODEL_VISION, max_tokens=4096)
 
 
 @observe(name="multimodal_extract")

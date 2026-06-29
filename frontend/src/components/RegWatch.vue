@@ -13,6 +13,7 @@ const chatInput = ref('')
 const ingesting = ref(false)
 const ingestLog = ref([])
 const ingestTotal = ref(0)
+const ingestDone = ref(false)
 
 // progress entries are those with status 'ok' or 'error' (excludes the final 'done' summary)
 const ingestProgress = computed(() => ingestLog.value.filter(e => e.status !== 'done').length)
@@ -24,6 +25,7 @@ async function runIngest() {
   ingesting.value = true
   ingestLog.value = []
   ingestTotal.value = 0
+  ingestDone.value = false
   try {
     const resp = await fetch('/ingest', { method: 'POST' })
     const reader = resp.body.getReader()
@@ -45,6 +47,7 @@ async function runIngest() {
         if (ev === 'done') {
           ingestTotal.value = data.total   // set total from API — no hardcoding
           ingestLog.value.push({ regulation: '—', status: 'done', detail: data.message })
+          ingestDone.value = true
         }
       }
     }
@@ -149,7 +152,7 @@ function isActive(step, i) {
       </section>
 
       <!-- Ingest regulations -->
-      <section class="rw-card rw-ingest">
+      <section class="rw-card rw-ingest" :class="{ 'rw-ingest-complete': ingestDone }">
         <div class="rw-ingest-header">
           <div>
             <p class="rw-field-label">Base de regulaciones</p>
@@ -157,8 +160,12 @@ function isActive(step, i) {
           </div>
           <button class="rw-btn-ingest" :disabled="ingesting" @click="runIngest">
             <span v-if="ingesting" class="rw-spinner"></span>
-            {{ ingesting ? 'Ingestando…' : 'Ingestar regulaciones' }}
+            {{ ingesting ? 'Ingestando…' : ingestDone ? 'Re-ingestar' : 'Ingestar regulaciones' }}
           </button>
+        </div>
+        <div v-if="ingestDone" class="rw-ingest-done-banner">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 8l3.5 3.5L13 4.5"/></svg>
+          {{ ingestTotal }} regulaciones ingestadas correctamente
         </div>
         <div v-if="ingesting || ingestLog.length" class="rw-progress-wrap">
           <div class="rw-progress-bar" :style="{ width: (ingesting && !ingestTotal ? '0' : ingestPct) + '%' }"
@@ -744,6 +751,30 @@ function isActive(step, i) {
 
 .rw-log-name   { color: var(--text); font-weight: 500; }
 .rw-log-status { color: var(--text-muted); }
+
+.rw-ingest-complete {
+  border-color: #4ade8066;
+}
+
+.rw-ingest-done-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #4ade8015;
+  border: 1px solid #4ade8044;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4ade80;
+}
+
+.rw-ingest-done-banner svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: #4ade80;
+}
 
 /* ── Progress bar ───────────────────────────────────────────────── */
 .rw-progress-wrap {

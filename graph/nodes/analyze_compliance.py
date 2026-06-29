@@ -1,6 +1,7 @@
 import logging
 
 from langchain_anthropic import ChatAnthropic
+from config import MODEL_ANALYZER
 from langchain_core.messages import SystemMessage, HumanMessage
 from langfuse import observe
 from graph.state import RegWatchState
@@ -9,7 +10,7 @@ from config import langfuse
 
 logger = logging.getLogger(__name__)
 
-llm_analyzer = ChatAnthropic(model="claude-sonnet-4-6", temperature=0.1)
+llm_analyzer = ChatAnthropic(model=MODEL_ANALYZER, temperature=0.1)
 analyzer = llm_analyzer.with_structured_output(GapReport)
 
 

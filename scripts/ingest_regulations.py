@@ -4,6 +4,7 @@ import os
 from langchain_community.document_loaders import PDFPlumberLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
+from config import MODEL_EMBEDDINGS
 from langchain_community.vectorstores import PGVector
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ def ingest_regulation(pdf_path: str, regulation_name: str,
             "language": "ES",
         })
 
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    embeddings = OpenAIEmbeddings(model=MODEL_EMBEDDINGS)
     PGVector.from_documents(
         documents=chunks,
         embedding=embeddings,

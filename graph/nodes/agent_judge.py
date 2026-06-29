@@ -2,6 +2,7 @@ import json
 import logging
 
 from langchain_openai import ChatOpenAI
+from config import MODEL_JUDGE
 from langchain_core.prompts import ChatPromptTemplate
 from langfuse import observe
 from graph.state import RegWatchState
@@ -9,7 +10,7 @@ from graph.schemas import JudgeScores
 
 logger = logging.getLogger(__name__)
 
-llm_judge = ChatOpenAI(model="gpt-4o", temperature=0).with_structured_output(JudgeScores)
+llm_judge = ChatOpenAI(model=MODEL_JUDGE, temperature=0).with_structured_output(JudgeScores)
 
 JUDGE_SYSTEM = """Eres un auditor experto en regulación financiera europea.
 Evalúa la calidad de un informe de compliance generado por IA en tres dimensiones (0-10):

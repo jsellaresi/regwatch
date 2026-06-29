@@ -1,6 +1,7 @@
 import logging
 
 from langchain_anthropic import ChatAnthropic
+from config import MODEL_ENRICH
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from langgraph.prebuilt import ToolNode
 from langfuse import observe
@@ -9,7 +10,7 @@ from graph.state import RegWatchState
 
 logger = logging.getLogger(__name__)
 
-llm_enrich = ChatAnthropic(model="claude-sonnet-4-6").bind_tools(ENRICH_TOOLS)
+llm_enrich = ChatAnthropic(model=MODEL_ENRICH).bind_tools(ENRICH_TOOLS)
 tools_node = ToolNode(ENRICH_TOOLS)
 
 ENRICH_SYSTEM = (

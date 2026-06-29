@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
 from langgraph.types import Command
 from langchain_openai import ChatOpenAI
+from config import MODEL_CHAT
 from graph import get_graph, init_graph
 from scripts.register_prompts import ensure_prompts
 from scripts.ingest_regulations import ingest_regulation, REGULATIONS
@@ -168,7 +169,7 @@ async def chat(thread_id: str = Form(...), question: str = Form(...)):
     config = {"configurable": {"thread_id": thread_id}}
     report = (await get_graph().aget_state(config)).values.get("final_report", {})
     history = SESSION_BUFFER.setdefault(thread_id, [])
-    llm = ChatOpenAI(model="gpt-4o", temperature=0)
+    llm = ChatOpenAI(model=MODEL_CHAT, temperature=0)
     prompt = (f"Informe de compliance:\n{json.dumps(report, ensure_ascii=False)}\n\n"
               f"Historial:\n{history}\n\nPregunta: {question}")
     answer = llm.invoke(prompt).content

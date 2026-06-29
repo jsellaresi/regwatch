@@ -1,6 +1,7 @@
 import logging
 
 from langchain_openai import OpenAIEmbeddings
+from config import MODEL_EMBEDDINGS
 from langchain_community.vectorstores import PGVector
 from langchain_community.retrievers import BM25Retriever
 from langchain_classic.retrievers import EnsembleRetriever
@@ -10,7 +11,7 @@ from config import DATABASE_URL
 
 logger = logging.getLogger(__name__)
 
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+embeddings = OpenAIEmbeddings(model=MODEL_EMBEDDINGS)
 
 
 def _load_chunks_from_db() -> list[Document]:

@@ -1,11 +1,12 @@
 import logging
 import re
 from langchain_anthropic import ChatAnthropic
+from config import MODEL_GUARDRAIL
 from graph.state import RegWatchState
 
 logger = logging.getLogger(__name__)
 
-llm_guard = ChatAnthropic(model="claude-haiku-4-5-20251001", max_tokens=256)
+llm_guard = ChatAnthropic(model=MODEL_GUARDRAIL, max_tokens=256)
 
 INJECTION_PATTERNS = [
     r"ignore previous instructions",
