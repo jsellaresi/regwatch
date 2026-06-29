@@ -6,6 +6,8 @@ plataforma de análisis de compliance descrita en [`../../use_case_regwatch.md`]
 Cada ADR documenta el *por qué* de una decisión: el contexto, la opción elegida, sus consecuencias
 y las alternativas descartadas. Formato basado en [MADR](https://adr.github.io/madr/).
 
+> **New to RegWatch?** Start with [GETTING-STARTED.md](GETTING-STARTED.md) for setup and usage.
+
 ## Índice
 
 | #    | Decisión | Estado |

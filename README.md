@@ -135,7 +135,8 @@ regwatch/
 
 ## Documentation
 
-- **[RUNBOOK.md](../RUNBOOK.md)** — how to run, seed data, and test every pipeline path
+- **[docs/GETTING-STARTED.md](docs/GETTING-STARTED.md)** — setup, first run, how to use the UI (start here)
+- **[RUNBOOK.md](../RUNBOOK.md)** — exhaustive testing paths, fixtures, curl examples
 - **[docs/](docs/README.md)** — 14 Architecture Decision Records (the *why* behind each design choice)
 
 | ADR | Decision |

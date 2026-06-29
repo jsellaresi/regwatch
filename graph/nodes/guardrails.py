@@ -56,7 +56,7 @@ def output_guardrail(state: RegWatchState) -> dict:
     gaps = report.get("gaps", [])
 
     VALID_CITATION_RE = re.compile(
-        r"^(GDPR|MiFID II|AML\d) Art\. \d+(\(\d+\))?$"
+        r"^(GDPR|MiFID II|\d?AMLD) Art\. \d+(\(\d+\))?([a-z])?$"
     )
 
     for gap in gaps:
