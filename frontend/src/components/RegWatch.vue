@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAnalysis } from '../composables/useAnalysis'
 
 const { completedNodes, report, needsReview, running, chatHistory, chatLoading, analyze, resume, chat, restoreSession, cancel, NODE_LABELS } = useAnalysis()
@@ -9,6 +9,50 @@ onUnmounted(() => { if (running.value) cancel() })
 const policyId = ref('policy-001')
 const file = ref(null)
 const chatInput = ref('')
+
+const ingesting = ref(false)
+const ingestLog = ref([])
+const ingestTotal = ref(0)
+
+// progress entries are those with status 'ok' or 'error' (excludes the final 'done' summary)
+const ingestProgress = computed(() => ingestLog.value.filter(e => e.status !== 'done').length)
+const ingestPct = computed(() =>
+  ingestTotal.value ? Math.round(ingestProgress.value / ingestTotal.value * 100) : 0
+)
+
+async function runIngest() {
+  ingesting.value = true
+  ingestLog.value = []
+  ingestTotal.value = 0
+  try {
+    const resp = await fetch('/ingest', { method: 'POST' })
+    const reader = resp.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      let idx
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const block = buffer.slice(0, idx)
+        buffer = buffer.slice(idx + 2)
+        if (!block.includes('data:')) continue
+        const ev = (block.match(/event: (.*)/) || [])[1]
+        let data
+        try { data = JSON.parse((block.match(/data: (.*)/) || [])[1] || '{}') } catch { continue }
+        if (ev === 'progress') ingestLog.value.push(data)
+        if (ev === 'done') {
+          ingestTotal.value = data.total   // set total from API — no hardcoding
+          ingestLog.value.push({ regulation: '—', status: 'done', detail: data.message })
+        }
+      }
+    }
+  } catch (e) {
+    ingestLog.value.push({ regulation: '—', status: 'error', detail: e.message })
+  }
+  ingesting.value = false
+}
 
 // Deduplicate: tools_node / collect_tool_results alias to 'Tools' — keep each label once
 const PIPELINE = [...new Set(Object.values(NODE_LABELS))]
@@ -102,6 +146,34 @@ function isActive(step, i) {
           <span v-if="running" class="rw-spinner"></span>
           {{ running ? 'Analizando…' : 'Analizar' }}
         </button>
+      </section>
+
+      <!-- Ingest regulations -->
+      <section class="rw-card rw-ingest">
+        <div class="rw-ingest-header">
+          <div>
+            <p class="rw-field-label">Base de regulaciones</p>
+            <p class="rw-ingest-sub">Ingesta GDPR, MiFID II, 4/5/6AMLD en el vector store</p>
+          </div>
+          <button class="rw-btn-ingest" :disabled="ingesting" @click="runIngest">
+            <span v-if="ingesting" class="rw-spinner"></span>
+            {{ ingesting ? 'Ingestando…' : 'Ingestar regulaciones' }}
+          </button>
+        </div>
+        <div v-if="ingesting || ingestLog.length" class="rw-progress-wrap">
+          <div class="rw-progress-bar" :style="{ width: (ingesting && !ingestTotal ? '0' : ingestPct) + '%' }"
+               :class="{ indeterminate: ingesting && !ingestTotal }"></div>
+          <span class="rw-progress-label">
+            <template v-if="ingesting && !ingestTotal">Iniciando…</template>
+            <template v-else>{{ ingestProgress }}&nbsp;/&nbsp;{{ ingestTotal }}</template>
+          </span>
+        </div>
+        <ul v-if="ingestLog.length" class="rw-ingest-log">
+          <li v-for="(entry, i) in ingestLog" :key="i" :class="'rw-log-' + entry.status">
+            <span class="rw-log-name">{{ entry.regulation }}</span>
+            <span class="rw-log-status">{{ entry.status === 'ok' ? '✓' : entry.status === 'done' ? '✓ ' + entry.detail : '✗ ' + entry.detail }}</span>
+          </li>
+        </ul>
       </section>
 
       <!-- Pipeline rail -->
@@ -594,6 +666,121 @@ function isActive(step, i) {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── Ingest section ─────────────────────────────────────────────── */
+.rw-ingest {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rw-ingest-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.rw-ingest-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.rw-btn-ingest {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+  font-family: inherit;
+}
+
+.rw-btn-ingest:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rw-btn-ingest:not(:disabled):hover {
+  background: var(--surface-3, #2a2a3a);
+  border-color: var(--accent);
+}
+
+.rw-btn-ingest .rw-spinner {
+  border-color: rgba(255,255,255,0.2);
+  border-top-color: var(--accent);
+}
+
+.rw-ingest-log {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rw-ingest-log li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+
+.rw-log-ok   { border-left: 3px solid #4ade80; }
+.rw-log-done { border-left: 3px solid #60a5fa; }
+.rw-log-error { border-left: 3px solid #f87171; }
+
+.rw-log-name   { color: var(--text); font-weight: 500; }
+.rw-log-status { color: var(--text-muted); }
+
+/* ── Progress bar ───────────────────────────────────────────────── */
+.rw-progress-wrap {
+  position: relative;
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 99px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.rw-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+  min-width: 0;
+}
+
+.rw-progress-bar.indeterminate {
+  width: 30% !important;
+  animation: indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes indeterminate {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+.rw-progress-label {
+  position: absolute;
+  right: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1;
+  top: -16px;
 }
 
 /* ── Pipeline rail ─────────────────────────────────────── */

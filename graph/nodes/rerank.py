@@ -4,9 +4,17 @@ from langchain_core.documents import Document
 from graph.state import RegWatchState
 from config import COHERE_API_KEY
 
+try:
+    from cohere.errors.unauthorized_error import UnauthorizedError as _CohereUnauthorized
+except ImportError:
+    _CohereUnauthorized = Exception
+
 logger = logging.getLogger(__name__)
 
 TOP_N = 5
+
+from sentence_transformers import CrossEncoder
+_local_ce = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 if COHERE_API_KEY:
     from langchain_cohere import CohereRerank
@@ -14,8 +22,6 @@ if COHERE_API_KEY:
                            top_n=TOP_N, cohere_api_key=COHERE_API_KEY)
     logger.info("rerank: usando Cohere rerank-multilingual-v3.0")
 else:
-    from sentence_transformers import CrossEncoder
-    _local_ce = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
     logger.info("rerank: usando local cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 
@@ -25,8 +31,14 @@ def rerank(state: RegWatchState) -> dict:
 
     if COHERE_API_KEY:
         docs = [Document(page_content=r["content"], metadata=r) for r in regs]
-        top_docs = _cohere.compress_documents(documents=docs, query=query)
-        top = [d.metadata | {"content": d.page_content} for d in top_docs]
+        try:
+            top_docs = _cohere.compress_documents(documents=docs, query=query)
+            top = [d.metadata | {"content": d.page_content} for d in top_docs]
+        except _CohereUnauthorized:
+            logger.warning("rerank: Cohere key inválida, usando cross-encoder local como fallback")
+            scores = _local_ce.predict([(query, r["content"]) for r in regs])
+            ranked = sorted(zip(scores, regs), key=lambda x: x[0], reverse=True)
+            top = [r for _, r in ranked[:TOP_N]]
     else:
         scores = _local_ce.predict([(query, r["content"]) for r in regs])
         ranked = sorted(zip(scores, regs), key=lambda x: x[0], reverse=True)

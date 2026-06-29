@@ -8,11 +8,13 @@ logging.basicConfig(
 )
 from fastapi import FastAPI, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
 from langgraph.types import Command
 from langchain_openai import ChatOpenAI
 from graph import get_graph, init_graph
 from scripts.register_prompts import ensure_prompts
+from scripts.ingest_regulations import ingest_regulation, REGULATIONS
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +143,23 @@ async def get_state(thread_id: str):
         logger.warning("get_state: aborted thread_id=%s", thread_id)
         return {"status": "aborted"}
     return None  # tasks pending but not yet checkpointed (still running)
+
+
+@app.post("/ingest")
+async def ingest():
+    """Stream ingestion progress as Server-Sent Events."""
+    async def event_gen():
+        import asyncio
+        for args in REGULATIONS:
+            name = args[1]
+            try:
+                await asyncio.get_event_loop().run_in_executor(None, lambda a=args: ingest_regulation(*a))
+                yield {"event": "progress", "data": json.dumps({"regulation": name, "status": "ok"})}
+            except Exception as exc:
+                logger.exception("ingest: failed %s", name)
+                yield {"event": "progress", "data": json.dumps({"regulation": name, "status": "error", "detail": str(exc)})}
+        yield {"event": "done", "data": json.dumps({"message": "Ingesta completada", "total": len(REGULATIONS)})}
+    return EventSourceResponse(event_gen())
 
 
 @app.post("/chat")

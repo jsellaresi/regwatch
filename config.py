@@ -14,7 +14,8 @@ def _required(key: str) -> str:
 
 ANTHROPIC_API_KEY  = _required("ANTHROPIC_API_KEY")
 OPENAI_API_KEY     = _required("OPENAI_API_KEY")
-COHERE_API_KEY     = os.getenv("COHERE_API_KEY", "")
+_cohere_raw        = os.getenv("COHERE_API_KEY", "").strip()
+COHERE_API_KEY     = "" if (not _cohere_raw or _cohere_raw.startswith("#")) else _cohere_raw
 DATABASE_URL       = _required("DATABASE_URL")
 JIRA_API_TOKEN     = os.getenv("JIRA_API_TOKEN", "")
 JIRA_ENABLED       = os.getenv("JIRA_ENABLED", "false").lower() == "true"
