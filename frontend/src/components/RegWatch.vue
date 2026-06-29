@@ -12,8 +12,8 @@ const chatInput = ref('')
 
 const ingesting = ref(false)
 const ingestLog = ref([])
-const ingestTotal = ref(0)
-const ingestDone = ref(false)
+const ingestTotal = ref(Number(sessionStorage.getItem('rw_ingest_total')) || 0)
+const ingestDone = ref(sessionStorage.getItem('rw_ingest_done') === '1')
 
 // progress entries are those with status 'ok' or 'error' (excludes the final 'done' summary)
 const ingestProgress = computed(() => ingestLog.value.filter(e => e.status !== 'done').length)
@@ -48,6 +48,8 @@ async function runIngest() {
           ingestTotal.value = data.total   // set total from API — no hardcoding
           ingestLog.value.push({ regulation: '—', status: 'done', detail: data.message })
           ingestDone.value = true
+          sessionStorage.setItem('rw_ingest_done', '1')
+          sessionStorage.setItem('rw_ingest_total', data.total)
         }
       }
     }
