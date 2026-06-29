@@ -18,7 +18,6 @@ const NODE_LABELS = {
   store_episodic_memory: 'Memoria',
 }
 
-// Steps completed before the HITL checkpoint — used to mark progress on restore/fallback
 const PRE_HITL_LABELS = ['Cache','Extracción','Guardrail entrada','Retrieval','Reranking',
   'Tools','Análisis','Guardrail salida','Judge','Revisión humana']
 const ALL_LABELS = [...new Set(Object.values(NODE_LABELS))]
@@ -31,11 +30,29 @@ export function useAnalysis() {
   const threadId = ref(null)
   const chatHistory = ref([])
   const chatLoading = ref(false)
-  let _abort = null   // AbortController for the active SSE fetch
+  let _abort = null
+
+  // Add labels without duplicates
+  function _addNodes(labels) {
+    for (const l of labels) if (!completedNodes.value.includes(l)) completedNodes.value.push(l)
+  }
+
+  // Apply a /state response.
+  // Returns: true = terminal state applied, null = aborted/dead, false = still running
+  function _applyState(data) {
+    if (!data || data.status === 'aborted') return null
+    if (data.status === 'completed')    { report.value = data;      _addNodes(ALL_LABELS);      return true }
+    if (data.status === 'needs_review') { needsReview.value = data; _addNodes(PRE_HITL_LABELS); return true }
+    return false
+  }
+
+  async function _fetchState(tid) {
+    try { return await (await fetch(`/state/${encodeURIComponent(tid)}`)).json() } catch { return null }
+  }
 
   function cancel() {
-    running.value = false          // stops _pollUntilDone loop
-    if (_abort) { _abort.abort(); _abort = null }
+    running.value = false
+    _abort?.abort(); _abort = null
     completedNodes.value = []
     report.value = null
     needsReview.value = null
@@ -54,6 +71,7 @@ export function useAnalysis() {
     // Reusing the same thread_id on a HITL-paused thread returns an empty stream.
     threadId.value = `${policyId}:${file.name}:${Date.now()}`
     sessionStorage.setItem('rw_thread_id', threadId.value)
+
     const form = new FormData()
     form.append('file', file)
     form.append('policy_id', policyId)
@@ -69,6 +87,7 @@ export function useAnalysis() {
       running.value = false
       return
     }
+
     const decoder = new TextDecoder()
     let buffer = ''
     try {
@@ -84,12 +103,9 @@ export function useAnalysis() {
           const ev = (block.match(/event: (.*)/) || [])[1]
           let data
           try { data = JSON.parse((block.match(/data: (.*)/) || [])[1] || '{}') } catch { continue }
-          if (ev === 'node') {
-            const label = NODE_LABELS[data.node] || data.node
-            if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
-          }
+          if (ev === 'node')         _addNodes([NODE_LABELS[data.node] || data.node])
           if (ev === 'needs_review') needsReview.value = data
-          if (ev === 'done') report.value = data
+          if (ev === 'done')         report.value = data
         }
       }
     } catch (e) {
@@ -98,41 +114,21 @@ export function useAnalysis() {
     _abort = null
     running.value = false
 
-    // Fallback: if the stream was aborted before we could process the events
-    // (ERR_ABORTED on SSE close), fetch the final state from the API
-    if (!report.value && !needsReview.value) {
-      try {
-        const r = await fetch(`/state/${encodeURIComponent(threadId.value)}`)
-        const data = await r.json()
-        if (data?.status === 'needs_review') {
-          needsReview.value = data
-          for (const label of PRE_HITL_LABELS) {
-            if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
-          }
-        } else if (data?.status === 'completed') {
-          report.value = data
-          for (const label of ALL_LABELS) {
-            if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
-          }
-        }
-      } catch (_) {}
-    }
+    // Fallback: SSE closed before a terminal event arrived (e.g. ERR_ABORTED on proxy)
+    if (!report.value && !needsReview.value) _applyState(await _fetchState(threadId.value))
   }
 
   async function resume(decision) {
+    needsReview.value = null
+    running.value = true
     const form = new FormData()
     form.append('thread_id', threadId.value)
     form.append('decision', decision)
-    needsReview.value = null
-    running.value = true
-    const resp = await fetch('/resume', { method: 'POST', body: form })
-    const data = await resp.json()
+    const data = await (await fetch('/resume', { method: 'POST', body: form })).json()
     if (data.status === 'done') {
       report.value = data.final_report
-      // Mark all post-HITL steps as done — resume returns JSON, not a stream
-      for (const label of ['Revisión humana', 'Informe', 'Tickets JIRA', 'Memoria']) {
-        if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
-      }
+      // resume returns JSON, not a stream — mark post-HITL steps done manually
+      _addNodes(['Revisión humana', 'Informe', 'Tickets JIRA', 'Memoria'])
     } else if (data.status === 'needs_review') {
       needsReview.value = data
     }
@@ -143,50 +139,31 @@ export function useAnalysis() {
     const saved = sessionStorage.getItem('rw_thread_id')
     if (!saved) return
     threadId.value = saved
-    try {
-      const resp = await fetch(`/state/${encodeURIComponent(saved)}`)
-      const data = await resp.json()
-      if (!data) {
-        // Pipeline is still running — show spinner and poll until terminal state
-        running.value = true
-        _pollUntilDone(saved)
-        return
-      }
-      if (data.status === 'completed') {
-        report.value = data
-        for (const label of ALL_LABELS) {
-          if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
-        }
-      } else if (data.status === 'needs_review') {
-        needsReview.value = data
-        for (const label of PRE_HITL_LABELS) {
-          if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
-        }
-      }
-    } catch (_) {}
+    const result = _applyState(await _fetchState(saved))
+    if (result === null) {
+      // Aborted / dead thread — clear session
+      sessionStorage.removeItem('rw_thread_id')
+      threadId.value = null
+    } else if (result === false) {
+      // Still running — poll until done
+      running.value = true
+      _pollUntilDone(saved)
+    }
+    // result === true: terminal state already applied, nothing else to do
   }
 
   async function _pollUntilDone(tid) {
-    while (running.value) {
+    const MAX_POLLS = 45  // ~90 s at 2 s interval
+    for (let i = 0; i < MAX_POLLS && running.value; i++) {
       await new Promise(r => setTimeout(r, 2000))
-      try {
-        const resp = await fetch(`/state/${encodeURIComponent(tid)}`)
-        const data = await resp.json()
-        if (!data) continue          // still running, keep polling
-        running.value = false
-        if (data.status === 'completed') {
-          report.value = data
-          for (const label of ALL_LABELS) {
-            if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
-          }
-        } else if (data.status === 'needs_review') {
-          needsReview.value = data
-          for (const label of PRE_HITL_LABELS) {
-            if (!completedNodes.value.includes(label)) completedNodes.value.push(label)
-          }
-        }
-        return
-      } catch (_) {}
+      const result = _applyState(await _fetchState(tid))
+      if (result !== false) break  // terminal (true) or aborted/dead (null)
+    }
+    running.value = false
+    if (!report.value && !needsReview.value) {
+      // Timed out or aborted — clean up session
+      sessionStorage.removeItem('rw_thread_id')
+      threadId.value = null
     }
   }
 
@@ -196,8 +173,7 @@ export function useAnalysis() {
     const form = new FormData()
     form.append('thread_id', threadId.value)
     form.append('question', question)
-    const resp = await fetch('/chat', { method: 'POST', body: form })
-    const { answer } = await resp.json()
+    const { answer } = await (await fetch('/chat', { method: 'POST', body: form })).json()
     chatHistory.value.push({ role: 'assistant', text: answer })
     chatLoading.value = false
   }

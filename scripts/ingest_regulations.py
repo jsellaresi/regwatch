@@ -1,13 +1,14 @@
 import logging
+import os
 
 from langchain_community.document_loaders import PDFPlumberLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import PGVector
 
 logger = logging.getLogger(__name__)
 
-CONNECTION_STRING = "postgresql+psycopg2://user:pass@localhost/regwatch"
+CONNECTION_STRING = os.getenv("DATABASE_URL", "postgresql+psycopg2://regwatch:regwatch@db:5432/regwatch")
 
 
 def ingest_regulation(pdf_path: str, regulation_name: str,

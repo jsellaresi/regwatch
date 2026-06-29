@@ -128,13 +128,19 @@ async def get_state(thread_id: str):
         state = await get_graph().aget_state(config)
     except Exception:
         return None
+    if not state or not state.values:
+        return None  # thread never started
     if state.values.get("final_report"):
         return {"status": "completed", **state.values["final_report"]}
     interrupts = [i for task in (state.tasks or []) for i in getattr(task, "interrupts", [])]
     if interrupts:
         payload = interrupts[0].value if hasattr(interrupts[0], "value") else {}
         return {"status": "needs_review", **payload}
-    return None
+    # Checkpoint exists with partial state but no active tasks — run was aborted (e.g. container restart)
+    if state.tasks is not None and len(state.tasks) == 0:
+        logger.warning("get_state: aborted thread_id=%s", thread_id)
+        return {"status": "aborted"}
+    return None  # tasks pending but not yet checkpointed (still running)
 
 
 @app.post("/chat")
