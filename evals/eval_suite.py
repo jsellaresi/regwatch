@@ -52,7 +52,7 @@ class TestPromptPromotion:
 
     def test_no_hallucinated_citations(self):
         results = [run_single_eval(c) for c in GOLDEN_CASES]
-        pattern = re.compile(r"^(GDPR|MiFID II|AML\d) Art\. \d+(\(\d+\))?$")
+        pattern = re.compile(r"^(GDPR|MiFID II|\d?AMLD) Art\.\s\d+(\(\d+\))?([a-z])?$")
         for r in results:
             for ref in r["predicted_refs"]:
                 assert pattern.match(ref), f"Cita con formato incorrecto: '{ref}'"

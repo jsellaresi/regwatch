@@ -17,7 +17,7 @@ GOLDEN_CASES = [
         "id": "aml-kyc-001",
         "document_excerpt": "La verificación de identidad se realiza en los primeros 90 días.",
         "expected_gaps": [
-            {"regulation_ref": "AML6 Art. 13", "risk_level": "MEDIUM"}
+            {"regulation_ref": "6AMLD Art. 13", "risk_level": "MEDIUM"}
         ],
     },
     {
