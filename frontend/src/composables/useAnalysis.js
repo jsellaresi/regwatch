@@ -100,7 +100,7 @@ export function useAnalysis() {
           const block = buffer.slice(0, idx)
           buffer = buffer.slice(idx + 2)
           if (!block.includes('data:')) continue
-          const ev = (block.match(/event: (.*)/) || [])[1]
+          const ev = ((block.match(/event: (.*)/) || [])[1] || '').trim()
           let data
           try { data = JSON.parse((block.match(/data: (.*)/) || [])[1] || '{}') } catch { continue }
           if (ev === 'node')         _addNodes([NODE_LABELS[data.node] || data.node])
