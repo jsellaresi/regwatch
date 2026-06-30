@@ -102,7 +102,35 @@ Esto crea el prompt versionado en LangFuse. Al igual que el corpus, solo hace fa
 
 ---
 
-## 5. Analizar una política
+## 5. Ejecutar los evals (gate de calidad)
+
+Antes de analizar políticas reales, verifica que el prompt registrado supera los umbrales de calidad. Los evals miden precisión y recall contra un dataset golden y validan que las citas tengan el formato correcto.
+
+**Requisito:** el entorno local debe estar configurado con `uv sync` (ver sección anterior) y la DB de Docker debe estar levantada.
+
+```bash
+uv run pytest evals/eval_suite.py -v
+```
+
+Umbrales que deben cumplirse (si fallan, el build se considera roto):
+
+| Test | Umbral |
+|---|---|
+| `test_average_precision_above_threshold` | precisión media ≥ 0.85 |
+| `test_average_recall_above_threshold` | recall medio ≥ 0.80 |
+| `test_no_hallucinated_citations` | 0 citas con formato incorrecto |
+
+Si los tres tests pasan en verde, el prompt en `staging` es válido para producción. Promuévelo:
+
+```bash
+uv run python -m scripts.promote_prompt
+```
+
+> Los resultados detallados por caso (inputs, outputs, métricas) se pueden consultar en el dashboard de **LangFuse** (`LANGFUSE_HOST` del `.env`) bajo el proyecto configurado.
+
+---
+
+## 6. Analizar una política
 
 Ahora el sistema está listo. Para analizar un documento de política interna:
 
@@ -126,7 +154,7 @@ El informe final muestra:
 
 ---
 
-## 6. Revisión humana
+## 7. Revisión humana
 
 Si el LLM juez rechaza el informe tras 3 intentos, o el guardrail de salida falla repetidamente, el pipeline se pausa y muestra una alerta **"Revisión humana requerida"** en la interfaz.
 
@@ -135,7 +163,7 @@ Si el LLM juez rechaza el informe tras 3 intentos, o el guardrail de salida fall
 
 ---
 
-## 7. Chat de seguimiento
+## 8. Chat de seguimiento
 
 Tras generar un informe, aparece un panel de chat. Haz preguntas sobre el informe:
 
@@ -146,7 +174,7 @@ El chat tiene contexto del informe completo generado en esa sesión.
 
 ---
 
-## 8. Detener y reiniciar
+## 9. Detener y reiniciar
 
 ```bash
 docker compose down          # detiene los contenedores, los datos sobreviven en el volumen pgdata
