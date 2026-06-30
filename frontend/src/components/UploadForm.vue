@@ -43,19 +43,19 @@ function submit() {
   </section>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .rw-upload {
   display: flex;
   align-items: flex-end;
   gap: 1.25rem;
   flex-wrap: wrap;
-}
 
-.rw-upload-fields {
-  display: flex;
-  gap: 1.25rem;
-  flex: 1;
-  flex-wrap: wrap;
+  &-fields {
+    display: flex;
+    gap: 1.25rem;
+    flex: 1;
+    flex-wrap: wrap;
+  }
 }
 
 .rw-field {
@@ -76,14 +76,14 @@ function submit() {
   font-size: 13px;
   transition: border-color 0.2s, color 0.2s;
   white-space: nowrap;
-}
 
-.rw-file-drop input[type="file"] { display: none; }
+  input[type='file'] { display: none; }
 
-.rw-file-drop:hover,
-.rw-file-drop.has-file {
-  border-color: var(--accent);
-  color: var(--text-primary);
+  &:hover,
+  &.has-file {
+    border-color: var(--accent);
+    color: var(--text-primary);
+  }
 }
 
 .rw-file-icon {

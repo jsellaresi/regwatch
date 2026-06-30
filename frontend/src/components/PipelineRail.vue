@@ -39,7 +39,7 @@ function isActive(step, i) {
   </section>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .rw-pipeline-wrap {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -59,38 +59,53 @@ function isActive(step, i) {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-}
 
-.rw-step-node {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 2px solid var(--border);
-  background: var(--bg);
-  display: grid;
-  place-items: center;
-  transition: border-color 0.3s, background 0.3s;
-  flex-shrink: 0;
-}
+  &-node {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    display: grid;
+    place-items: center;
+    transition: border-color 0.3s, background 0.3s;
+    flex-shrink: 0;
+  }
 
-.rw-step.done .rw-step-node {
-  border-color: var(--done);
-  background: color-mix(in srgb, var(--done) 12%, transparent);
-  color: var(--done);
-}
+  &-num {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
 
-.rw-step.active .rw-step-node {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  &-label {
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    text-align: center;
+    white-space: nowrap;
+    transition: color 0.25s;
+    max-width: 70px;
+    line-height: 1.3;
+  }
+
+  &.done {
+    .rw-step-node {
+      border-color: var(--done);
+      background: color-mix(in srgb, var(--done) 12%, transparent);
+    }
+    .rw-step-label { color: var(--done); }
+  }
+
+  &.active {
+    .rw-step-node {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+    }
+    .rw-step-label { color: var(--accent); }
+  }
 }
 
 .rw-check-icon { width: 14px; height: 14px; stroke: var(--done); }
-
-.rw-step-num {
-  font-size: 11px;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
 
 .rw-active-pulse {
   width: 10px;
@@ -105,19 +120,6 @@ function isActive(step, i) {
   50%       { opacity: 0.4; transform: scale(0.7); }
 }
 
-.rw-step-label {
-  font-size: 10.5px;
-  color: var(--text-secondary);
-  text-align: center;
-  white-space: nowrap;
-  transition: color 0.25s;
-  max-width: 70px;
-  line-height: 1.3;
-}
-
-.rw-step.done .rw-step-label   { color: var(--done); }
-.rw-step.active .rw-step-label { color: var(--accent); }
-
 .rw-connector {
   flex: 1;
   height: 2px;
@@ -125,9 +127,9 @@ function isActive(step, i) {
   min-width: 20px;
   margin-bottom: 22px;
   transition: background 0.4s ease;
-}
 
-.rw-connector.filled { background: var(--done); }
+  &.filled { background: var(--done); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .rw-active-pulse { animation: none; }

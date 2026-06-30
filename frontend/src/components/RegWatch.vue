@@ -70,8 +70,10 @@ onUnmounted(() => { if (running.value) cancel() })
   </div>
 </template>
 
-<style scoped>
-/* ── App shell ── */
+<style lang="scss" scoped>
+@use '../assets/mixins' as *;
+
+// ── App shell ──
 .rw-app {
   display: flex;
   height: 100vh;
@@ -82,7 +84,43 @@ onUnmounted(() => { if (running.value) cancel() })
   line-height: 1.5;
 }
 
-/* ── Sidebar ── */
+// ── Sidebar ──
+.rw-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  &-mark {
+    @include serif-font;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+  }
+
+  &-name {
+    @include serif-font;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+
+  &-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+}
+
 .rw-sidebar {
   width: 210px;
   flex-shrink: 0;
@@ -92,80 +130,47 @@ onUnmounted(() => { if (running.value) cancel() })
   flex-direction: column;
   gap: 2rem;
   overflow-y: auto;
+
+  &-section { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  &-label { @include uppercase-label(10px, 0.1em); }
+
+  &-pipeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 3px 0;
+    transition: color 0.25s;
+
+    &.done {
+      color: var(--done);
+
+      .rw-sidebar-dot { background: var(--done); }
+    }
+  }
+
+  &-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+    transition: background 0.25s;
+  }
 }
 
-.rw-brand { display: flex; align-items: center; gap: 10px; }
-
-.rw-brand-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: var(--accent);
-  color: #fff;
-  font-family: 'Palatino Linotype', Palatino, Georgia, serif;
-  font-size: 13px;
-  font-weight: 700;
-  display: grid;
-  place-items: center;
-  letter-spacing: 0.02em;
-  flex-shrink: 0;
-}
-
-.rw-brand-name {
-  font-family: 'Palatino Linotype', Palatino, Georgia, serif;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  line-height: 1.2;
-}
-
-.rw-brand-sub {
-  font-size: 11px;
-  color: var(--text-secondary);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.rw-sidebar-section { display: flex; flex-direction: column; gap: 0.75rem; }
-
-.rw-sidebar-label {
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-.rw-sidebar-pipeline {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.rw-sidebar-step {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  padding: 3px 0;
-  transition: color 0.25s;
-}
-.rw-sidebar-step.done { color: var(--done); }
-
-.rw-sidebar-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--border);
-  flex-shrink: 0;
-  transition: background 0.25s;
-}
-.rw-sidebar-step.done .rw-sidebar-dot { background: var(--done); }
-
-/* ── Main ── */
+// ── Main ──
 .rw-main {
   flex: 1;
   overflow-y: auto;
@@ -176,7 +181,7 @@ onUnmounted(() => { if (running.value) cancel() })
   min-width: 0;
 }
 
-/* ── Header ── */
+// ── Header ──
 .rw-header {
   display: flex;
   align-items: flex-end;
@@ -185,16 +190,13 @@ onUnmounted(() => { if (running.value) cancel() })
 }
 
 .rw-eyebrow {
+  @include uppercase-label(11px, 0.1em);
   margin: 0 0 4px;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
 }
 
 .rw-title {
+  @include serif-font;
   margin: 0;
-  font-family: 'Palatino Linotype', Palatino, Georgia, serif;
   font-size: 26px;
   font-weight: 400;
   color: var(--text-primary);
@@ -225,8 +227,9 @@ onUnmounted(() => { if (running.value) cancel() })
   border: 1px solid color-mix(in srgb, var(--risk-high) 35%, transparent);
   border-radius: 12px;
   transition: background 0.15s;
+
+  &:hover { background: color-mix(in srgb, var(--risk-high) 28%, transparent); }
 }
-.rw-btn-stop:hover { background: color-mix(in srgb, var(--risk-high) 28%, transparent); }
 
 .rw-pulse {
   width: 7px;

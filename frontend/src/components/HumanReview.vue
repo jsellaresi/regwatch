@@ -19,7 +19,8 @@ defineEmits(['approve', 'reject'])
   </section>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
+@use '../assets/mixins' as *;
 .rw-review-alert {
   display: flex;
   align-items: flex-start;
@@ -49,31 +50,23 @@ defineEmits(['approve', 'reject'])
 
 .rw-review-actions { display: flex; gap: 0.75rem; margin-top: 4px; }
 
-.rw-btn-approve,
-.rw-btn-reject {
-  border-radius: 6px;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.2s;
+@mixin btn-outline($color) {
+  @include btn-outline-base;
+  background: color-mix(in srgb, #{$color} 12%, transparent);
+  color: #{$color};
+  border: 1px solid color-mix(in srgb, #{$color} 30%, transparent);
+
+  &:hover { background: color-mix(in srgb, #{$color} 22%, transparent); }
 }
 
 .rw-btn-approve {
+  @include btn-outline(var(--done));
   background: color-mix(in srgb, var(--done) 15%, transparent);
-  color: var(--done);
-  border: 1px solid color-mix(in srgb, var(--done) 35%, transparent);
+
+  &:hover { background: color-mix(in srgb, var(--done) 25%, transparent); }
 }
-.rw-btn-approve:hover { background: color-mix(in srgb, var(--done) 25%, transparent); }
 
 .rw-btn-reject {
-  background: color-mix(in srgb, var(--risk-high) 12%, transparent);
-  color: var(--risk-high);
-  border: 1px solid color-mix(in srgb, var(--risk-high) 30%, transparent);
+  @include btn-outline(var(--risk-high));
 }
-.rw-btn-reject:hover { background: color-mix(in srgb, var(--risk-high) 22%, transparent); }
-
-.rw-btn-approve:focus-visible,
-.rw-btn-reject:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>

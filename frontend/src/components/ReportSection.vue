@@ -123,7 +123,8 @@ function sendChat() {
   </section>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
+@use '../assets/mixins' as *;
 .rw-report { display: flex; flex-direction: column; gap: 1.25rem; }
 
 /* ── Memory bar ── */
@@ -136,35 +137,22 @@ function sendChat() {
   overflow: hidden;
 }
 
-.rw-mem-stat { display: flex; align-items: center; gap: 8px; padding: 1rem 1.5rem; flex: 1; }
+.rw-mem-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 1rem 1.5rem;
+  flex: 1;
 
-.rw-mem-divider { width: 1px; height: 36px; background: var(--border); flex-shrink: 0; }
+  &.resolved .rw-mem-icon,
+  &.resolved .rw-mem-count { color: var(--done); }
 
-.rw-mem-icon  { font-size: 15px; flex-shrink: 0; }
+  &.open .rw-mem-icon,
+  &.open .rw-mem-count { color: var(--risk-medium); }
 
-.rw-mem-count {
-  font-size: 22px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
+  &.new-gaps .rw-mem-icon,
+  &.new-gaps .rw-mem-count { color: var(--risk-high); }
 }
-
-.rw-mem-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  line-height: 1.2;
-}
-
-.rw-mem-stat.resolved .rw-mem-icon,
-.rw-mem-stat.resolved .rw-mem-count { color: var(--done); }
-
-.rw-mem-stat.open .rw-mem-icon,
-.rw-mem-stat.open .rw-mem-count { color: var(--risk-medium); }
-
-.rw-mem-stat.new-gaps .rw-mem-icon,
-.rw-mem-stat.new-gaps .rw-mem-count { color: var(--risk-high); }
 
 /* ── Gaps table ── */
 .rw-gaps-card { padding: 0; overflow: hidden; }
@@ -176,33 +164,33 @@ function sendChat() {
   width: 100%;
   font-size: 13.5px;
   font-variant-numeric: tabular-nums;
-}
 
-.rw-table thead th {
-  padding: 10px 16px;
-  text-align: left;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  background: color-mix(in srgb, var(--border) 30%, var(--surface));
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
+  thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    background: color-mix(in srgb, var(--border) 30%, var(--surface));
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
 
-.rw-table tbody td {
-  padding: 11px 16px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-primary);
-  vertical-align: top;
-  line-height: 1.5;
-}
+  tbody {
+    td {
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-primary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
 
-.rw-table tbody tr:last-child td { border-bottom: none; }
+    tr:last-child td { border-bottom: none; }
 
-.rw-table tbody tr:hover td {
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
+    tr:hover td { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+  }
 }
 
 .rw-cell-remediation { max-width: 320px; }
@@ -217,22 +205,24 @@ function sendChat() {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
-}
 
-.rw-risk-badge[data-risk="HIGH"] {
-  background: color-mix(in srgb, var(--risk-high) 14%, transparent);
-  color: var(--risk-high);
-  border: 1px solid color-mix(in srgb, var(--risk-high) 30%, transparent);
-}
-.rw-risk-badge[data-risk="MEDIUM"] {
-  background: color-mix(in srgb, var(--risk-medium) 14%, transparent);
-  color: var(--risk-medium);
-  border: 1px solid color-mix(in srgb, var(--risk-medium) 30%, transparent);
-}
-.rw-risk-badge[data-risk="LOW"] {
-  background: color-mix(in srgb, var(--risk-low) 14%, transparent);
-  color: var(--risk-low);
-  border: 1px solid color-mix(in srgb, var(--risk-low) 30%, transparent);
+  &[data-risk='HIGH'] {
+    background: color-mix(in srgb, var(--risk-high) 14%, transparent);
+    color: var(--risk-high);
+    border: 1px solid color-mix(in srgb, var(--risk-high) 30%, transparent);
+  }
+
+  &[data-risk='MEDIUM'] {
+    background: color-mix(in srgb, var(--risk-medium) 14%, transparent);
+    color: var(--risk-medium);
+    border: 1px solid color-mix(in srgb, var(--risk-medium) 30%, transparent);
+  }
+
+  &[data-risk='LOW'] {
+    background: color-mix(in srgb, var(--risk-low) 14%, transparent);
+    color: var(--risk-low);
+    border: 1px solid color-mix(in srgb, var(--risk-low) 30%, transparent);
+  }
 }
 
 /* ── Report meta footer ── */
@@ -283,10 +273,11 @@ function sendChat() {
   font-size: 12.5px;
   white-space: nowrap;
   transition: opacity 0.2s;
+
+  &:hover         { opacity: 0.75; }
+  &:focus-visible { @include focus-ring; }
+  svg             { width: 11px; height: 11px; }
 }
-.rw-trace-link:hover         { opacity: 0.75; }
-.rw-trace-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.rw-trace-link svg           { width: 11px; height: 11px; }
 
 /* ── Chat ── */
 .rw-chat { padding: 0; overflow: hidden; }
@@ -301,8 +292,15 @@ function sendChat() {
   overflow-y: auto;
 }
 
-.rw-chat-msg        { display: flex; flex-direction: column; gap: 3px; }
-.rw-chat-loading    { flex-direction: row; align-items: center; gap: 10px; }
+.rw-chat-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  &.user .rw-chat-role { color: var(--accent); }
+
+  &.rw-chat-loading { flex-direction: row; align-items: center; gap: 10px; }
+}
 
 .rw-chat-role {
   font-size: 10.5px;
@@ -311,7 +309,6 @@ function sendChat() {
   text-transform: uppercase;
   color: var(--text-secondary);
 }
-.rw-chat-msg.user .rw-chat-role { color: var(--accent); }
 
 .rw-chat-text {
   margin: 0;

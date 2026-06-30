@@ -50,24 +50,59 @@ const { ingesting, ingestLog, ingestTotal, ingestDone, ingestProgress, ingestPct
   </section>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .rw-ingest {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
 
-.rw-ingest-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
+  &-complete { border-color: #4ade8066; }
 
-.rw-ingest-sub {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 2px;
+  &-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  &-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  &-done-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #4ade8015;
+    border: 1px solid #4ade8044;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #4ade80;
+
+    svg { width: 16px; height: 16px; flex-shrink: 0; stroke: #4ade80; }
+  }
+
+  &-log {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    li {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: color-mix(in srgb, var(--border) 60%, transparent);
+    }
+  }
 }
 
 .rw-btn-ingest {
@@ -85,46 +120,22 @@ const { ingesting, ingestLog, ingestTotal, ingestDone, ingestProgress, ingestPct
   white-space: nowrap;
   transition: background 0.2s, border-color 0.2s;
   font-family: inherit;
+
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  &:not(:disabled):hover {
+    background: var(--border);
+    border-color: var(--accent);
+  }
 }
 
-.rw-btn-ingest:disabled { opacity: 0.45; cursor: not-allowed; }
-
-.rw-btn-ingest:not(:disabled):hover {
-  background: var(--border);
-  border-color: var(--accent);
-}
-
-/* Override default white spinner colours for this dark button */
+// Spinner colour override for the ingest button's dark surface
 .rw-spinner--ingest {
-  border-color: rgba(255,255,255,0.15);
+  border-color: rgba(255, 255, 255, 0.15);
   border-top-color: var(--accent);
 }
 
-/* ── Done banner ── */
-.rw-ingest-complete { border-color: #4ade8066; }
-
-.rw-ingest-done-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #4ade8015;
-  border: 1px solid #4ade8044;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #4ade80;
-}
-
-.rw-ingest-done-banner svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  stroke: #4ade80;
-}
-
-/* ── Progress bar ── */
-/* Count is rendered ABOVE the bar so it is never clipped by overflow:hidden */
+// Progress: count sits ABOVE the bar so it is never clipped by overflow:hidden
 .rw-progress-count {
   font-size: 11px;
   color: var(--text-secondary);
@@ -144,11 +155,11 @@ const { ingesting, ingestLog, ingestTotal, ingestDone, ingestProgress, ingestPct
   background: var(--accent);
   border-radius: 99px;
   transition: width 0.4s ease;
-}
 
-.rw-progress-bar.indeterminate {
-  width: 30% !important;
-  animation: indeterminate 1.4s ease-in-out infinite;
+  &.indeterminate {
+    width: 30% !important;
+    animation: indeterminate 1.4s ease-in-out infinite;
+  }
 }
 
 @keyframes indeterminate {
@@ -156,24 +167,7 @@ const { ingesting, ingestLog, ingestTotal, ingestDone, ingestProgress, ingestPct
   100% { transform: translateX(400%); }
 }
 
-/* ── Log entries ── */
-.rw-ingest-log {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.rw-ingest-log li {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--border) 60%, transparent);
-}
+// Moved into .rw-ingest &-log above
 
 .rw-log-ok    { border-left: 3px solid #4ade80; }
 .rw-log-done  { border-left: 3px solid #60a5fa; }
