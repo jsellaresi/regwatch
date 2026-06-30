@@ -123,7 +123,7 @@ Umbrales que deben cumplirse (si fallan, el build se considera roto):
 Si los tres tests pasan en verde, el prompt en `staging` es válido para producción. Promuévelo:
 
 ```bash
-uv run python -m scripts.promote_prompt
+uv run python -m scripts.promote_prompt --from staging --to production
 ```
 
 > Los resultados detallados por caso (inputs, outputs, métricas) se pueden consultar en el dashboard de **LangFuse** (`LANGFUSE_HOST` del `.env`) bajo el proyecto configurado.
