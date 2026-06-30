@@ -1,158 +1,158 @@
-# Getting Started — RegWatch
+# Primeros pasos — RegWatch
 
-Practical guide to **set up and use** RegWatch. For the architectural *why* behind each decision, see the [ADR index](README.md). For exhaustive testing paths, see [RUNBOOK.md](../../RUNBOOK.md).
+Guía práctica para **configurar y utilizar** RegWatch. Para el *porqué* arquitectónico de cada decisión, consulta el [índice de ADR](README.md). Para rutas de prueba exhaustivas, consulta el [RUNBOOK.md](../../RUNBOOK.md).
 
 ---
 
-## The core concept (read this first)
+## El concepto fundamental (léelo primero)
 
-RegWatch works with **two completely different types of PDF**. Confusing them is the #1 source of confusion:
+RegWatch trabaja con **dos tipos de PDF completamente distintos**. Confundirlos es la fuente de confusión número 1:
 
-| | Regulatory corpus | Company policy |
+| | Corpus regulatorio | Política de empresa |
 |---|---|---|
-| **What it is** | The laws: GDPR, MiFID II, 4AMLD, 5AMLD, 6AMLD | Your internal policy document (data retention, KYC, etc.) |
-| **Where it lives** | Stored permanently in pgvector | Uploaded on demand via the UI |
-| **When to load it** | Once at setup, again only if regulations change | Every time you want to analyze a policy |
-| **How to load it** | "Ingestar regulaciones" button in the UI (or CLI) | Upload field in the UI |
+| **Qué es** | Las leyes: GDPR, MiFID II, 4AMLD, 5AMLD, 6AMLD | Tu documento de política interna (retención de datos, KYC, etc.) |
+| **Dónde vive** | Almacenado permanentemente en pgvector | Subido bajo demanda desde la interfaz |
+| **Cuándo cargarlo** | Una vez al configurar, solo si cambian las regulaciones | Cada vez que quieras analizar una política |
+| **Cómo cargarlo** | Botón "Ingestar regulaciones" en la UI (o CLI) | Campo de subida en la interfaz |
 
 ```
-Your company policy PDF  ──► RegWatch pipeline ──► Gap report
-                                      │
-              GDPR / MiFID II / AML ◄─┘   (already in the vector store)
+Tu PDF de política interna  ──► Pipeline de RegWatch ──► Informe de brechas
+                                           │
+              GDPR / MiFID II / AML ◄──────┘   (ya en el almacén vectorial)
 ```
 
 ---
 
-## 1. Prerequisites
+## 1. Requisitos previos
 
-- **Docker** and **Docker Compose v2** installed
-- API keys — copy `.env.example` to `.env` and fill in:
+- **Docker** y **Docker Compose v2** instalados
+- Claves de API — copia `.env.example` a `.env` y rellena los valores:
 
 ```bash
 cp .env.example .env
 ```
 
-| Key | Required | Purpose |
+| Clave | Obligatoria | Propósito |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | ✅ | Analysis LLM (Claude) + Vision for scanned PDFs |
-| `OPENAI_API_KEY` | ✅ | Embeddings (`text-embedding-3-small`) + Judge (GPT-4o) |
-| `LANGFUSE_PUBLIC_KEY` | ✅ | Observability traces |
-| `LANGFUSE_SECRET_KEY` | ✅ | Observability traces |
-| `LANGFUSE_HOST` | ✅ | e.g. `https://cloud.langfuse.com` |
-| `JIRA_API_TOKEN` | ❌ | Ticket creation (errors gracefully if absent) |
-| `COHERE_API_KEY` | ❌ | Cloud reranking (falls back to local model if absent) |
+| `ANTHROPIC_API_KEY` | ✅ | LLM de análisis (Claude) + Visión para PDFs escaneados |
+| `OPENAI_API_KEY` | ✅ | Embeddings (`text-embedding-3-small`) + Juez (GPT-4o) |
+| `LANGFUSE_PUBLIC_KEY` | ✅ | Trazas de observabilidad |
+| `LANGFUSE_SECRET_KEY` | ✅ | Trazas de observabilidad |
+| `LANGFUSE_HOST` | ✅ | p. ej. `https://cloud.langfuse.com` |
+| `JIRA_API_TOKEN` | ❌ | Creación de tickets (falla con gracia si no está) |
+| `COHERE_API_KEY` | ❌ | Reranking en la nube (usa modelo local si no está) |
 
 ---
 
-## 2. Start the stack
+## 2. Arrancar el stack
 
 ```bash
 cd regwatch
 docker compose up -d --build
 ```
 
-Three services start:
+Se inician tres servicios:
 
-| Service | URL | Purpose |
+| Servicio | URL | Propósito |
 |---|---|---|
-| Frontend | http://localhost:5173 | The UI you interact with |
+| Frontend | http://localhost:5173 | La interfaz con la que interactúas |
 | API | http://localhost:8000/docs | FastAPI + Swagger |
-| PostgreSQL | localhost:5432 | Vector store + checkpoints + cache |
+| PostgreSQL | localhost:5432 | Almacén vectorial + checkpoints + caché |
 
 ---
 
-## 3. Load the regulatory corpus (once)
+## 3. Cargar el corpus regulatorio (una vez)
 
-This step loads the regulation PDFs (`data/`) into the vector store. It only needs to be done **once** — the data persists across container restarts in the `pgdata` Docker volume.
+Este paso carga los PDFs de regulaciones (`data/`) en el almacén vectorial. Solo necesita hacerse **una vez** — los datos persisten entre reinicios del contenedor en el volumen Docker `pgdata`.
 
-**Option A — via the UI (recommended):**
+**Opción A — desde la interfaz (recomendado):**
 
-Open http://localhost:5173, find the **"BASE DE REGULACIONES"** card, and click **"Ingestar regulaciones"**. A progress bar shows each regulation loading in real time.
+Abre http://localhost:5173, encuentra la tarjeta **"BASE DE REGULACIONES"** y haz clic en **"Ingestar regulaciones"**. Una barra de progreso muestra en tiempo real cómo se carga cada regulación.
 
-**Option B — via CLI:**
+**Opción B — desde la CLI:**
 
 ```bash
 docker compose exec api python -m scripts.ingest_regulations
 ```
 
-**Verify it worked:**
+**Verifica que funcionó:**
 
 ```bash
 docker compose exec db psql -U regwatch -d regwatch -c "SELECT count(*) AS chunks FROM langchain_pg_embedding;"
-# Should return > 2000 chunks
+# Debería devolver > 2000 chunks
 ```
 
-**Optional — create the HNSW vector index for faster search:**
+**Opcional — crear el índice vectorial HNSW para búsquedas más rápidas:**
 
 ```bash
 docker compose exec db psql -U regwatch -d regwatch -c "CREATE INDEX IF NOT EXISTS idx_emb_hnsw ON langchain_pg_embedding USING hnsw (embedding vector_cosine_ops) WITH (m=16, ef_construction=64);"
 ```
 
-> You only need to re-run the ingestion if a regulation is amended or you add new regulations to `data/`.
+> Solo necesitas volver a ejecutar la ingestión si se modifica una regulación o añades nuevas regulaciones a `data/`.
 
 ---
 
-## 4. Register the analysis prompt (once)
+## 4. Registrar el prompt de análisis (una vez)
 
 ```bash
 docker compose exec api python -m scripts.register_prompts
 ```
 
-This creates the versioned prompt in LangFuse. Like the corpus, it only needs to be done once (the startup check skips it if already registered).
+Esto crea el prompt versionado en LangFuse. Al igual que el corpus, solo hace falta hacerlo una vez (la comprobación al arrancar lo omite si ya está registrado).
 
 ---
 
-## 5. Analyze a policy
+## 5. Analizar una política
 
-Now the system is ready. To analyze an internal policy document:
+Ahora el sistema está listo. Para analizar un documento de política interna:
 
-1. Open http://localhost:5173
-2. Enter a **Policy ID** (any identifier, e.g. `gdpr-retention-v1`)
-3. **Upload your company's PDF policy document** (not a regulation — your internal document)
-4. Click **Analizar**
+1. Abre http://localhost:5173
+2. Introduce un **ID de política** (cualquier identificador, p. ej. `gdpr-retencion-v1`)
+3. **Sube el PDF de política de tu empresa** (no una regulación — tu documento interno)
+4. Haz clic en **Analizar**
 
-The pipeline nodes light up in real time as the analysis progresses:
+Los nodos del pipeline se iluminan en tiempo real mientras avanza el análisis:
 
 ```
-Cache → Extraction → Input guardrail → Retrieval → Reranking
-     → Tools → Analysis → Output guardrail → Judge → (Human review?) → Report
+Caché → Extracción → Guardrail entrada → Recuperación → Reranking
+     → Herramientas → Análisis → Guardrail salida → Juez → (¿Revisión humana?) → Informe
 ```
 
-The final report shows:
-- **Detected gaps** with regulation references and risk level (HIGH / MEDIUM / LOW)
-- **Remediation** suggestion per gap
-- **JIRA tickets** (if `JIRA_API_TOKEN` is set)
-- **Memory diff** — what was resolved vs. still open vs. new since the last analysis of the same policy
+El informe final muestra:
+- **Brechas detectadas** con referencias normativas y nivel de riesgo (ALTO / MEDIO / BAJO)
+- **Remediación** sugerida por brecha
+- **Tickets JIRA** (si `JIRA_API_TOKEN` está configurado)
+- **Diff de memoria** — qué se resolvió vs. sigue abierto vs. es nuevo desde el último análisis de la misma política
 
 ---
 
-## 6. Human review
+## 6. Revisión humana
 
-If the Judge LLM rejects the report after 3 attempts, or the output guardrail fails repeatedly, the pipeline pauses and shows a **"Revisión humana requerida"** alert in the UI.
+Si el LLM juez rechaza el informe tras 3 intentos, o el guardrail de salida falla repetidamente, el pipeline se pausa y muestra una alerta **"Revisión humana requerida"** en la interfaz.
 
-- Click **Aprobar informe** to continue to the final report
-- Click **Rechazar** to re-run the analysis
-
----
-
-## 7. Follow-up chat
-
-After a report is generated, a chat panel appears. Ask questions about the report:
-
-> *"What is the highest-risk gap and why?"*
-> *"Which gaps relate to data retention?"*
-
-The chat has context from the full report generated in that session.
+- Haz clic en **Aprobar informe** para continuar al informe final
+- Haz clic en **Rechazar** para volver a ejecutar el análisis
 
 ---
 
-## 8. Stopping and restarting
+## 7. Chat de seguimiento
+
+Tras generar un informe, aparece un panel de chat. Haz preguntas sobre el informe:
+
+> *"¿Cuál es la brecha de mayor riesgo y por qué?"*
+> *"¿Qué brechas están relacionadas con la retención de datos?"*
+
+El chat tiene contexto del informe completo generado en esa sesión.
+
+---
+
+## 8. Detener y reiniciar
 
 ```bash
-docker compose down          # stops containers, data survives in pgdata volume
-docker compose down -v       # stops + deletes all data (requires re-ingestion)
-docker compose up -d         # restart without rebuilding
-docker compose up -d --build # restart and rebuild images (after code changes)
+docker compose down          # detiene los contenedores, los datos sobreviven en el volumen pgdata
+docker compose down -v       # detiene y elimina todos los datos (requiere volver a ingestar)
+docker compose up -d         # reinicia sin reconstruir
+docker compose up -d --build # reinicia y reconstruye las imágenes (tras cambios en el código)
 ```
 
-> After `docker compose up -d` (no `--build`), the regulatory corpus and registered prompt are **already there** — no need to re-ingest or re-register.
+> Tras `docker compose up -d` (sin `--build`), el corpus regulatorio y el prompt registrado **ya están ahí** — no es necesario volver a ingestar ni a registrar.
