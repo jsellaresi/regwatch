@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-const NODE_LABELS = {
+export const NODE_LABELS = {
   check_cache: 'Cache',
   multimodal_extract: 'Extracción',
   input_guardrail: 'Guardrail entrada',
@@ -104,8 +104,8 @@ export function useAnalysis() {
           let data
           try { data = JSON.parse((block.match(/data: (.*)/) || [])[1] || '{}') } catch { continue }
           if (ev === 'node')         _addNodes([NODE_LABELS[data.node] || data.node])
-          if (ev === 'needs_review') needsReview.value = data
-          if (ev === 'done')         report.value = data
+          if (ev === 'needs_review') { needsReview.value = data; _addNodes(PRE_HITL_LABELS) }
+          if (ev === 'done')         { report.value = data; _addNodes(ALL_LABELS) }
         }
       }
     } catch (e) {
