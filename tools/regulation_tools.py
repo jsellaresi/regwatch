@@ -2,7 +2,7 @@ import logging
 
 import requests
 from langchain_core.tools import tool
-from config import EURLEX_BASE_URL, JIRA_API_TOKEN
+from config import EURLEX_BASE_URL, JIRA_API_TOKEN, JIRA_BASE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ def create_jira_ticket(summary: str, description: str, priority: str) -> str:
         }
     }
     response = requests.post(
-        "https://your-org.atlassian.net/rest/api/2/issue",
+        f"{JIRA_BASE_URL}/rest/api/2/issue",
         json=payload,
         headers=headers,
         timeout=10,
@@ -72,6 +72,9 @@ def web_search_regulation(query: str) -> str:
 
     Args:
         query: Consulta en lenguaje natural sobre regulación
+
+    NOTE: This is a stub implementation. For production, integrate a real search
+    API (e.g. Tavily, SerpAPI) and replace the return value below.
     """
     return f"[Simulado] Resultados de búsqueda para: {query}"
 

@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from contextlib import asynccontextmanager
 
 logging.basicConfig(
@@ -37,7 +38,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SESSION_BUFFER: dict[str, list] = {}
+SESSION_BUFFER: dict[str, tuple[float, list]] = {}  # thread_id -> (last_access_ts, history)
+SESSION_TTL_SECONDS = 60 * 60 * 4  # 4 hours
 
 
 @app.post("/analyze")
@@ -107,6 +109,8 @@ async def analyze_stream(file: UploadFile, policy_id: str = Form(...), thread_id
 
 @app.post("/resume")
 async def resume(thread_id: str = Form(...), decision: str = Form(...)):
+    if decision not in ("approve", "reject"):
+        return {"status": "error", "message": f"Invalid decision '{decision}'. Must be 'approve' or 'reject'."}
     logger.info("resume: thread_id=%s decision=%s", thread_id, decision)
     config = {"configurable": {"thread_id": thread_id}}
     result = await get_graph().ainvoke(Command(resume=decision), config=config)
@@ -168,10 +172,17 @@ async def chat(thread_id: str = Form(...), question: str = Form(...)):
     logger.info("chat: thread_id=%s", thread_id)
     config = {"configurable": {"thread_id": thread_id}}
     report = (await get_graph().aget_state(config)).values.get("final_report", {})
-    history = SESSION_BUFFER.setdefault(thread_id, [])
+    now = time.time()
+    # evict stale sessions to prevent unbounded memory growth
+    stale = [k for k, (ts, _) in SESSION_BUFFER.items() if now - ts > SESSION_TTL_SECONDS]
+    for k in stale:
+        del SESSION_BUFFER[k]
+    _, history = SESSION_BUFFER.setdefault(thread_id, (now, []))
+    SESSION_BUFFER[thread_id] = (now, history)
     llm = ChatOpenAI(model=MODEL_CHAT, temperature=0)
     prompt = (f"Informe de compliance:\n{json.dumps(report, ensure_ascii=False)}\n\n"
               f"Historial:\n{history}\n\nPregunta: {question}")
     answer = llm.invoke(prompt).content
-    history.append((question, answer))
+    history.append({"role": "user", "text": question})
+    history.append({"role": "assistant", "text": answer})
     return {"answer": answer}

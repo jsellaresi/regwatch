@@ -1,11 +1,13 @@
 import logging
 
+from langfuse import observe
 from graph.state import RegWatchState
 from graph.nodes.memory import diff_with_memory
 
 logger = logging.getLogger(__name__)
 
 
+@observe(name="format_report")
 def format_report(state: RegWatchState) -> dict:
     memory_diff = diff_with_memory(state)["memory_diff"]
     final = {

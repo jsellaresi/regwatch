@@ -39,7 +39,9 @@ cp .env.example .env
 | `LANGFUSE_PUBLIC_KEY` | ✅ | Trazas de observabilidad |
 | `LANGFUSE_SECRET_KEY` | ✅ | Trazas de observabilidad |
 | `LANGFUSE_HOST` | ✅ | p. ej. `https://cloud.langfuse.com` |
-| `JIRA_API_TOKEN` | ❌ | Creación de tickets (falla con gracia si no está) |
+| `JIRA_API_TOKEN` | ❌ | Token de autenticación JIRA (necesario si `JIRA_ENABLED=true`) |
+| `JIRA_ENABLED` | ❌ | Pon `true` para crear tickets en JIRA (por defecto `false`) |
+| `JIRA_BASE_URL` | ❌ | URL base de tu instancia Atlassian (ej. `https://acme.atlassian.net`) |
 | `COHERE_API_KEY` | ❌ | Reranking en la nube (usa modelo local si no está) |
 
 ---

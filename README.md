@@ -109,9 +109,9 @@ regwatch/
 | Layer | Technology |
 |---|---|
 | Orchestration | LangGraph (StateGraph + PostgreSQL checkpointer + `interrupt()`) |
-| Analysis LLM | `claude-sonnet-4-6` |
+| Analysis LLM | `claude-haiku-4-5` |
 | Judge LLM | `gpt-4o` |
-| Multimodal | Claude Vision (scanned PDF pages) |
+| Vision LLM | `claude-sonnet-4-6` (multimodal, scanned PDFs) |
 | Embeddings | `text-embedding-3-small` (OpenAI) |
 | Vector DB | PostgreSQL + pgvector |
 | Keyword search | BM25Retriever (rank_bm25) |
@@ -130,7 +130,9 @@ regwatch/
 | `LANGFUSE_SECRET_KEY` | ✅ | Observability |
 | `LANGFUSE_HOST` | ✅ | LangFuse endpoint (e.g. `https://cloud.langfuse.com`) |
 | `DATABASE_URL` | ✅ | PostgreSQL connection string |
-| `JIRA_API_TOKEN` | ✅ | Ticket creation |
+| `JIRA_API_TOKEN` | ❌ | Ticket creation token (required if `JIRA_ENABLED=true`) |
+| `JIRA_ENABLED` | ❌ | Set to `true` to enable JIRA ticket creation (default: `false`) |
+| `JIRA_BASE_URL` | ❌ | Your Atlassian instance URL (e.g. `https://acme.atlassian.net`) |
 | `COHERE_API_KEY` | ❌ | Reranking (falls back to local BGE if absent) |
 
 ## Documentation
