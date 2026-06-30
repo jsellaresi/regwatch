@@ -20,9 +20,33 @@ export function useIngest() {
 
     try {
       const resp = await fetch('/ingest', { method: 'POST' })
+      if (!resp.ok) {
+        ingestLog.value.push({ regulation: '—', status: 'error', detail: `Error del servidor (${resp.status})` })
+        ingesting.value = false
+        return
+      }
+
       const reader = resp.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
+
+      // Helper: parse and dispatch a single SSE block
+      function dispatchBlock(block) {
+        if (!block.includes('data:')) return
+        const ev = ((block.match(/event: (.*)/) || [])[1] || '').trim()
+        let data
+        try { data = JSON.parse((block.match(/data: (.*)/) || [])[1] || '{}') } catch { return }
+        if (ev === 'progress') {
+          ingestLog.value.push(data)
+        }
+        if (ev === 'done') {
+          ingestTotal.value = data.total ?? ingestProgress.value
+          ingestLog.value.push({ regulation: '—', status: 'done', detail: data.message })
+          ingestDone.value = true
+          sessionStorage.setItem('rw_ingest_done', '1')
+          sessionStorage.setItem('rw_ingest_total', String(ingestTotal.value))
+        }
+      }
 
       while (true) {
         const { done, value } = await reader.read()
@@ -30,32 +54,23 @@ export function useIngest() {
         buffer += decoder.decode(value, { stream: true })
         let idx
         while ((idx = buffer.indexOf('\n\n')) !== -1) {
-          const block = buffer.slice(0, idx)
+          dispatchBlock(buffer.slice(0, idx))
           buffer = buffer.slice(idx + 2)
-          if (!block.includes('data:')) continue
-          const ev = ((block.match(/event: (.*)/) || [])[1] || '').trim()
-          let data
-          try { data = JSON.parse((block.match(/data: (.*)/) || [])[1] || '{}') } catch { continue }
-          if (ev === 'progress') {
-            ingestLog.value.push(data)
-          }
-          if (ev === 'done') {
-            // data.total may be absent if backend omits it — fall back to progress count
-            ingestTotal.value = data.total ?? ingestProgress.value
-            ingestLog.value.push({ regulation: '—', status: 'done', detail: data.message })
-            ingestDone.value = true
-            sessionStorage.setItem('rw_ingest_done', '1')
-            sessionStorage.setItem('rw_ingest_total', String(ingestTotal.value))
-          }
         }
       }
+
+      // Flush decoder and process any remaining block whose trailing \n\n was split
+      // across the final read chunk and the stream-closed signal.
+      buffer += decoder.decode()
+      if (buffer.trim()) dispatchBlock(buffer.trim())
+
     } catch (e) {
       ingestLog.value.push({ regulation: '—', status: 'error', detail: e.message })
     }
 
-    // Fallback: stream closed without an explicit 'done' SSE event but we did receive
-    // progress entries — infer completion rather than silently leaving the UI stale.
-    if (!ingestDone.value && ingestLog.value.some(e => e.status === 'ok')) {
+    // Fallback: stream closed without an explicit 'done' SSE event.
+    // Trigger on ANY log entries (ok or error) so the banner always appears.
+    if (!ingestDone.value && ingestLog.value.length > 0) {
       ingestTotal.value = ingestProgress.value
       ingestDone.value = true
       sessionStorage.setItem('rw_ingest_done', '1')

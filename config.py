@@ -22,8 +22,8 @@ JIRA_ENABLED       = os.getenv("JIRA_ENABLED", "false").lower() == "true"
 EURLEX_BASE_URL    = "https://eur-lex.europa.eu/rest"
 
 # ── Model names ──────────────────────────────────────────────────────────────
-MODEL_ANALYZER      = "claude-3-5-haiku-20241022"
-MODEL_ENRICH        = "claude-3-5-haiku-20241022"
+MODEL_ANALYZER      = "claude-haiku-4-5"
+MODEL_ENRICH        = "claude-haiku-4-5"
 MODEL_VISION        = "claude-sonnet-4-6"
 MODEL_GUARDRAIL     = "claude-haiku-4-5-20251001"
 MODEL_JUDGE         = "gpt-4o"
