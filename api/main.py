@@ -158,13 +158,13 @@ async def ingest():
         for args in REGULATIONS:
             name = args[1]
             try:
-                await asyncio.get_event_loop().run_in_executor(None, lambda a=args: ingest_regulation(*a))
+                await asyncio.get_running_loop().run_in_executor(None, lambda a=args: ingest_regulation(*a))
                 yield {"event": "progress", "data": json.dumps({"regulation": name, "status": "ok"})}
             except Exception as exc:
                 logger.exception("ingest: failed %s", name)
                 yield {"event": "progress", "data": json.dumps({"regulation": name, "status": "error", "detail": str(exc)})}
         yield {"event": "done", "data": json.dumps({"message": "Ingesta completada", "total": len(REGULATIONS)})}
-    return EventSourceResponse(event_gen())
+    return EventSourceResponse(event_gen(), ping=15)
 
 
 @app.post("/chat")
