@@ -1,7 +1,13 @@
 <script setup>
+import { ref, watch } from 'vue'
 import { useIngest } from '../composables/useIngest'
 
 const { ingesting, ingestLog, ingestTotal, ingestDone, ingestProgress, ingestPct, runIngest } = useIngest()
+
+// Show log while ingesting; auto-collapse when done
+const showLog = ref(ingesting.value || !ingestDone.value)
+watch(ingestDone, (done) => { if (done) showLog.value = false })
+watch(ingesting,  (ing)  => { if (ing)  showLog.value = true  })
 </script>
 
 <template>
@@ -17,15 +23,18 @@ const { ingesting, ingestLog, ingestTotal, ingestDone, ingestProgress, ingestPct
       </button>
     </div>
 
-    <div v-if="ingestDone" class="rw-ingest-done-banner">
+    <div v-if="ingestDone" class="rw-ingest-done-banner" @click="showLog = !showLog" style="cursor:pointer">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
         <path d="M3 8l3.5 3.5L13 4.5"/>
       </svg>
       {{ ingestTotal }} regulaciones ingestadas correctamente
+      <svg class="rw-chevron" :class="{ 'rw-chevron--open': showLog }" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 6l4 4 4-4"/>
+      </svg>
     </div>
 
-    <!-- Progress: count sits above the bar, not clipped inside it -->
-    <template v-if="ingesting || ingestLog.length">
+    <!-- Progress bar and log: always visible while ingesting, toggleable when done -->
+    <template v-if="showLog && (ingesting || ingestLog.length)">
       <span class="rw-progress-count">
         <template v-if="ingesting && !ingestTotal">Iniciando…</template>
         <template v-else>{{ ingestProgress }}&nbsp;/&nbsp;{{ ingestTotal }}</template>
@@ -37,16 +46,15 @@ const { ingesting, ingestLog, ingestTotal, ingestDone, ingestProgress, ingestPct
           :class="{ indeterminate: ingesting && !ingestTotal }"
         ></div>
       </div>
+      <ul v-if="ingestLog.length" class="rw-ingest-log">
+        <li v-for="(entry, i) in ingestLog" :key="i" :class="'rw-log-' + entry.status">
+          <span class="rw-log-name">{{ entry.regulation }}</span>
+          <span class="rw-log-detail">
+            {{ entry.status === 'ok' ? '✓' : entry.status === 'done' ? '✓ ' + entry.detail : '✗ ' + entry.detail }}
+          </span>
+        </li>
+      </ul>
     </template>
-
-    <ul v-if="ingestLog.length" class="rw-ingest-log">
-      <li v-for="(entry, i) in ingestLog" :key="i" :class="'rw-log-' + entry.status">
-        <span class="rw-log-name">{{ entry.regulation }}</span>
-        <span class="rw-log-detail">
-          {{ entry.status === 'ok' ? '✓' : entry.status === 'done' ? '✓ ' + entry.detail : '✗ ' + entry.detail }}
-        </span>
-      </li>
-    </ul>
   </section>
 </template>
 
@@ -82,8 +90,11 @@ const { ingesting, ingestLog, ingestTotal, ingestDone, ingestProgress, ingestPct
     font-size: 13px;
     font-weight: 500;
     color: #4ade80;
+    user-select: none;
 
     svg { width: 16px; height: 16px; flex-shrink: 0; stroke: #4ade80; }
+
+    &:hover { background: #4ade8022; }
   }
 
   &-log {
@@ -103,6 +114,16 @@ const { ingesting, ingestLog, ingestTotal, ingestDone, ingestProgress, ingestPct
       background: color-mix(in srgb, var(--border) 60%, transparent);
     }
   }
+}
+
+.rw-chevron {
+  margin-left: auto;
+  width: 14px !important;
+  height: 14px !important;
+  transition: transform 0.2s ease;
+  opacity: 0.7;
+
+  &--open { transform: rotate(180deg); }
 }
 
 .rw-btn-ingest {
