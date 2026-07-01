@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useAnalysis, NODE_LABELS } from '../composables/useAnalysis'
 import UploadForm    from './UploadForm.vue'
 import IngestSection from './IngestSection.vue'
@@ -15,6 +15,22 @@ const {
 
 // Deduplicate aliased labels (tools_node / collect_tool_results -> 'Tools')
 const PIPELINE = [...new Set(Object.values(NODE_LABELS))]
+
+// During HITL, surface the gap report from the interrupt payload so the user
+// can actually read what they are approving or rejecting.
+const activeReport = computed(() => {
+  if (report.value) return report.value
+  if (needsReview.value?.gap_report) {
+    return {
+      gaps:         needsReview.value.gap_report.gaps ?? [],
+      judge_scores: needsReview.value.judge_scores   ?? {},
+      memory_diff:  null,
+      trace_url:    needsReview.value.trace_url       ?? '',
+      status:       'pending_review',
+    }
+  }
+  return null
+})
 
 onMounted(() => restoreSession())
 onUnmounted(() => { if (running.value) cancel() })
@@ -64,8 +80,8 @@ onUnmounted(() => { if (running.value) cancel() })
       <UploadForm    :running="running" @submit="(f, pid) => analyze(f, pid)" />
       <IngestSection />
       <PipelineRail  :pipeline="PIPELINE" :completed-nodes="completedNodes" :running="running" />
-      <HumanReview   v-if="needsReview" :reason="needsReview.reason" @approve="resume('approve')" @reject="resume('reject')" />
-      <ReportSection v-if="report" :report="report" :chat-history="chatHistory" :chat-loading="chatLoading" @chat="chat" />
+      <HumanReview   v-if="needsReview" :reason="needsReview.reason" :iteration="needsReview.iteration" @approve="resume('approve')" @reject="resume('reject')" />
+      <ReportSection v-if="activeReport" :report="activeReport" :chat-history="chatHistory" :chat-loading="chatLoading" @chat="chat" />
     </main>
   </div>
 </template>

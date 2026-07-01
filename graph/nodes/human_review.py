@@ -20,6 +20,7 @@ def human_review_checkpoint(state: RegWatchState) -> dict:
         "gap_report": state.get("gap_report", {}),
         "judge_scores": state.get("judge_scores", {}),
         "trace_url": state.get("trace_url", ""),
+        "iteration": state.get("judge_attempt", 1),
     })
     logger.info("human_review: decision received = %s", decision)
     return {"human_decision": decision}

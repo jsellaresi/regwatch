@@ -122,18 +122,25 @@ export function useAnalysis() {
   async function resume(decision) {
     needsReview.value = null
     running.value = true
-    const form = new FormData()
-    form.append('thread_id', threadId.value)
-    form.append('decision', decision)
-    const data = await (await fetch('/resume', { method: 'POST', body: form })).json()
-    if (data.status === 'done') {
-      report.value = data.final_report
-      // resume returns JSON, not a stream — mark post-HITL steps done manually
-      _addNodes(['Revisión humana', 'Informe', 'Tickets JIRA', 'Memoria'])
-    } else if (data.status === 'needs_review') {
-      needsReview.value = data
+    try {
+      const form = new FormData()
+      form.append('thread_id', threadId.value)
+      form.append('decision', decision)
+      const data = await (await fetch('/resume', { method: 'POST', body: form })).json()
+      if (data.status === 'done') {
+        report.value = data.final_report
+        // resume returns JSON, not a stream — mark post-HITL steps done manually
+        _addNodes(['Revisión humana', 'Informe', 'Tickets JIRA', 'Memoria'])
+      } else if (data.status === 'needs_review') {
+        needsReview.value = data
+      } else if (data.status === 'error') {
+        console.error('resume error:', data.message)
+      }
+    } catch (e) {
+      console.error('resume fetch failed:', e)
+    } finally {
+      running.value = false
     }
-    running.value = false
   }
 
   async function restoreSession() {

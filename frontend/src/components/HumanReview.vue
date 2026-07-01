@@ -1,5 +1,5 @@
 <script setup>
-defineProps({ reason: String })
+defineProps({ reason: String, iteration: { type: Number, default: 1 } })
 defineEmits(['approve', 'reject'])
 </script>
 
@@ -7,13 +7,16 @@ defineEmits(['approve', 'reject'])
   <section class="rw-card rw-review-alert">
     <div class="rw-review-icon">!</div>
     <div class="rw-review-body">
-      <p class="rw-review-title">Revisión humana requerida</p>
+      <div class="rw-review-header">
+        <p class="rw-review-title">Revisión humana requerida</p>
+        <span v-if="iteration > 1" class="rw-review-iter">Re-análisis #{{ iteration }}</span>
+      </div>
       <p class="rw-review-sub">
         {{ reason || 'El judge no aprobó el informe automáticamente. Revise el análisis antes de continuar.' }}
       </p>
       <div class="rw-review-actions">
         <button class="rw-btn-approve" @click="$emit('approve')">Aprobar informe</button>
-        <button class="rw-btn-reject"  @click="$emit('reject')">Rechazar</button>
+        <button class="rw-btn-reject"  @click="$emit('reject')" title="Descarta este análisis y ejecuta uno nuevo">Rechazar y re-analizar</button>
       </div>
     </div>
   </section>
@@ -45,8 +48,24 @@ defineEmits(['approve', 'reject'])
 
 .rw-review-body { display: flex; flex-direction: column; gap: 6px; }
 
+.rw-review-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .rw-review-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--risk-medium); }
 .rw-review-sub   { margin: 0; font-size: 13px; color: var(--text-secondary); }
+
+.rw-review-iter {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--risk-medium) 18%, transparent);
+  color: var(--risk-medium);
+  border: 1px solid color-mix(in srgb, var(--risk-medium) 35%, transparent);
+}
 
 .rw-review-actions { display: flex; gap: 0.75rem; margin-top: 4px; }
 
