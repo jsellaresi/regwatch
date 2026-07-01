@@ -95,6 +95,7 @@ export function useAnalysis() {
         const { done, value } = await reader.read()
         if (done) break
         buffer += decoder.decode(value, { stream: true })
+        buffer = buffer.replace(/\r\n/g, '\n')  // sse_starlette 3.x uses CRLF
         let idx
         while ((idx = buffer.indexOf('\n\n')) !== -1) {
           const block = buffer.slice(0, idx)
