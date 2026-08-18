@@ -3,13 +3,8 @@ import logging
 import time
 from contextlib import asynccontextmanager
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-)
 from fastapi import FastAPI, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
 from langgraph.types import Command
 from langchain_openai import ChatOpenAI
@@ -19,6 +14,10 @@ from graph import get_graph, init_graph
 from api.interrupts import extract_interrupt_payload
 from scripts.ingest_regulations import ingest_regulation, REGULATIONS
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 

@@ -32,7 +32,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 | 8 | Wire `log_judge_scores` into `agent_judge.py` (ADR-0010) | ✅ | `tests/test_log_judge_scores.py` (5 cases) |
 | 9 | Reranker multilingual model | ✅ *(done early, folded into the infra fix above)* | — |
 | 10 | `enrich_agent` tools: real `web_search_regulation`, loud `get_regulation_amendments` failure | ✅ | `tests/test_regulation_tools.py` (9 cases) |
-| 11 | Judge needs `retrieved_regulations`; compute `overall_score`/`approved` in Python | ⬜ | |
+| 11 | Judge needs `retrieved_regulations`; compute `overall_score`/`approved` in Python | ✅ | `tests/test_judge_verdict.py` (9 cases) |
 | 12 | JIRA auth (Basic, not Bearer), API version, externalize project key | ⬜ | |
 | 13 | Dedupe tickets against `memory_diff["new"]` | ⬜ | |
 | 14 | Document retrieval query-size limitation in ADR-0004 (decomposition itself deferred) | ⬜ | |

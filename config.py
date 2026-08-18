@@ -1,3 +1,4 @@
+import hashlib
 import os
 from dotenv import load_dotenv
 
@@ -66,9 +67,6 @@ def get_langfuse():
                   or "https://cloud.langfuse.com"),
         )
     return _langfuse_client
-
-
-import hashlib
 
 
 def _make_hashed_prompt_cache(engine):
