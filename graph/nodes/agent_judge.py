@@ -7,6 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langfuse import observe
 from graph.state import RegWatchState
 from graph.schemas import JudgeScores
+from observability.tracing import log_judge_scores
 
 logger = logging.getLogger(__name__)
 
@@ -47,11 +48,13 @@ def agent_judge(state: RegWatchState) -> dict:
         attempt, scores.overall_score, scores.approved,
         scores.legal_accuracy, scores.citation_quality, scores.actionability,
     )
-    return {
+    result = {
         "judge_scores": scores.model_dump(),
         "judge_attempt": attempt,
         "judge_passed": scores.approved,
     }
+    log_judge_scores(result)
+    return result
 
 
 def route_after_judge(state: RegWatchState) -> str:

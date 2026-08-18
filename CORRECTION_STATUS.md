@@ -29,7 +29,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 | # | Fix | Status | Tests added |
 |---|-----|--------|-------------|
 | 7 | Cache invalidation on prompt promotion / re-ingest (ADR-0006) | ✅ | `tests/test_cache_invalidation.py` (4 cases) |
-| 8 | Wire `log_judge_scores` into `agent_judge.py` (ADR-0010) | ⬜ | |
+| 8 | Wire `log_judge_scores` into `agent_judge.py` (ADR-0010) | ✅ | `tests/test_log_judge_scores.py` (5 cases) |
 | 9 | Reranker multilingual model | ✅ *(done early, folded into the infra fix above)* | — |
 | 10 | `enrich_agent` tools: real `web_search_regulation`, loud `get_regulation_amendments` failure | ⬜ | |
 | 11 | Judge needs `retrieved_regulations`; compute `overall_score`/`approved` in Python | ⬜ | |
