@@ -16,6 +16,7 @@ from langchain_openai import ChatOpenAI
 import config
 from config import MODEL_CHAT
 from graph import get_graph, init_graph
+from api.interrupts import extract_interrupt_payload
 from scripts.register_prompts import ensure_prompts
 from scripts.ingest_regulations import ingest_regulation, REGULATIONS
 
@@ -50,8 +51,9 @@ async def analyze_document(file: UploadFile, policy_id: str = Form(...)):
     graph = get_graph()
     document_bytes = await file.read()
     logger.info("analyze: policy_id=%s file=%s size=%d bytes", policy_id, file.filename, len(document_bytes))
-    config = {"configurable": {"thread_id": f"{policy_id}:{file.filename}"}}
-    result = graph.invoke(
+    thread_id = f"{policy_id}:{file.filename}"
+    config = {"configurable": {"thread_id": thread_id}}
+    result = await graph.ainvoke(
         {
             "document_bytes": document_bytes,
             "document_name": file.filename,
@@ -61,8 +63,21 @@ async def analyze_document(file: UploadFile, policy_id: str = Form(...)):
         },
         config=config,
     )
-    logger.info("analyze complete: policy_id=%s", policy_id)
-    return result["final_report"]
+    if result.get("final_report"):
+        logger.info("analyze complete: policy_id=%s", policy_id)
+        return result["final_report"]
+
+    # The graph always passes through a human_review interrupt() on a fresh
+    # run, so a first call never has final_report — surface the pending
+    # review instead of KeyError-ing on a key that was never going to exist.
+    state = await graph.aget_state(config)
+    payload = extract_interrupt_payload(state)
+    if payload is not None:
+        logger.info("analyze: needs_review policy_id=%s thread_id=%s", policy_id, thread_id)
+        return {"status": "needs_review", "thread_id": thread_id, **payload}
+
+    logger.warning("analyze: pipeline ended without a final_report or a pending review, policy_id=%s", policy_id)
+    return {"status": "error", "message": "El pipeline terminó sin generar un informe ni pausar para revisión humana."}
 
 
 @app.post("/analyze/stream")
@@ -122,9 +137,8 @@ async def resume(thread_id: str = Form(...), decision: str = Form(...)):
         return {"status": "done", "final_report": result["final_report"]}
     # Reject path: re-analysis ran and HITL triggered again
     state = await get_graph().aget_state(config)
-    interrupts = [i for task in (state.tasks or []) for i in getattr(task, "interrupts", [])]
-    if interrupts:
-        payload = interrupts[0].value if hasattr(interrupts[0], "value") else {}
+    payload = extract_interrupt_payload(state)
+    if payload is not None:
         logger.info("resume: re-interrupted thread_id=%s", thread_id)
         return {"status": "needs_review", **payload}
     logger.warning("resume: unexpected state thread_id=%s", thread_id)
@@ -142,9 +156,8 @@ async def get_state(thread_id: str):
         return None  # thread never started
     if state.values.get("final_report"):
         return {"status": "completed", **state.values["final_report"]}
-    interrupts = [i for task in (state.tasks or []) for i in getattr(task, "interrupts", [])]
-    if interrupts:
-        payload = interrupts[0].value if hasattr(interrupts[0], "value") else {}
+    payload = extract_interrupt_payload(state)
+    if payload is not None:
         return {"status": "needs_review", **payload}
     # Checkpoint exists with partial state but no active tasks — run was aborted (e.g. container restart)
     if state.tasks is not None and len(state.tasks) == 0:
