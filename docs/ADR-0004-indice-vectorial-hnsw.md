@@ -33,6 +33,16 @@ CREATE INDEX ON langchain_pg_embedding
 - `ef_construction = 64`: tamaño de la lista dinámica al construir (mayor = mejor grafo, build más lento).
 - `vector_cosine_ops`: coseno, coherente con embeddings normalizados de OpenAI (`text-embedding-3-small`).
 
+**Nota de implementación:** este `CREATE INDEX` no vive en `docker/init-db.sql`. Ese script corre una
+sola vez, en el primer arranque del contenedor con el volumen de datos vacío — antes de que la app
+haya creado nunca `langchain_pg_embedding` (la crea `PGVector` de `langchain_community` de forma
+perezosa, en la primera ingesta). Un `CREATE INDEX` ahí fallaría en un volumen nuevo, o si se protegiera
+para no fallar, no se ejecutaría nunca (init-db.sql no vuelve a correr después del primer arranque). El
+índice se crea en `scripts/ingest_regulations.py::_ensure_hnsw_index()`, con `CREATE INDEX IF NOT
+EXISTS idx_langchain_pg_embedding_hnsw ...` (nombrado explícitamente, porque `IF NOT EXISTS` lo exige
+en Postgres), invocado justo después de cada `PGVector.from_documents(...)` — idempotente, así que
+tolera ejecutarse una vez por regulación ingestada sin coste relevante.
+
 **2. Índices relacionales (B-tree):**
 
 ```sql

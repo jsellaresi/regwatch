@@ -6,10 +6,36 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from config import MODEL_EMBEDDINGS
 from langchain_community.vectorstores import PGVector
+from sqlalchemy import create_engine, text
 
 logger = logging.getLogger(__name__)
 
 CONNECTION_STRING = os.getenv("DATABASE_URL", "postgresql+psycopg2://regwatch:regwatch@db:5432/regwatch")
+
+# ADR-0004's decision. Kept as a named-index DDL statement (not the unnamed
+# `CREATE INDEX ON ...` shorthand in the ADR text) because `IF NOT EXISTS`
+# requires an explicit name in Postgres.
+HNSW_INDEX_SQL = (
+    "CREATE INDEX IF NOT EXISTS idx_langchain_pg_embedding_hnsw "
+    "ON langchain_pg_embedding "
+    "USING hnsw (embedding vector_cosine_ops) "
+    "WITH (m = 16, ef_construction = 64)"
+)
+
+
+def _ensure_hnsw_index(connection_string: str) -> None:
+    """Create the HNSW index ADR-0004 specifies, once langchain_pg_embedding
+    actually exists. This can't live in docker/init-db.sql: that script only
+    runs once, on first container init, before the app has ever created its
+    own tables via PGVector — a CREATE INDEX there would fail outright on a
+    fresh volume, or (if guarded to skip a missing table) silently never run
+    at all, since init-db.sql never fires again afterwards. Idempotent, so
+    it's safe to call after every ingestion."""
+    engine = create_engine(connection_string)
+    with engine.connect() as conn:
+        conn.execute(text(HNSW_INDEX_SQL))
+        conn.commit()
+    logger.info("HNSW index ensured on langchain_pg_embedding")
 
 
 def ingest_regulation(pdf_path: str, regulation_name: str,
@@ -40,6 +66,7 @@ def ingest_regulation(pdf_path: str, regulation_name: str,
         collection_name="regulations",
         connection_string=CONNECTION_STRING,
     )
+    _ensure_hnsw_index(CONNECTION_STRING)
     logger.info("Ingestados %d chunks de %s (%s)", len(chunks), regulation_name, celex)
 
 

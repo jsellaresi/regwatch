@@ -19,7 +19,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 | 2 | Fix `/analyze`: `graph.invoke` → `await graph.ainvoke`, handle interrupted state | ✅ | `tests/test_extract_interrupt_payload.py` (6 cases) |
 | 3 | Reinject `guardrail_reason`/`critical_issues` into retry `HumanMessage` | ✅ | `tests/test_build_retry_feedback.py` (7 cases) |
 | 4 | Fix CI eval gate (env vars, workflow path, trigger filter) | ✅ | `tests/test_ci_eval_gate_collects.py` (3 cases) |
-| 5 | Create the HNSW index in `docker/init-db.sql` | ⬜ | |
+| 5 | Create the HNSW index (relocated from plan's `docker/init-db.sql` to `scripts/ingest_regulations.py` — see note below) | ✅ | `tests/test_hnsw_index_sql.py` (4 cases) |
 | 6 | Gate/remove `ensure_prompts()` from startup lifespan | ⬜ | |
 | — | `analyze_compliance` exception branch missing `gap_report` key (bundled with #3) | ⬜ | |
 
@@ -61,6 +61,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 
 ## Notes from fixes so far
 
+- **Fix 5 deviates from the plan's wording**: the plan (following the grader's suggestion) said to add the `CREATE INDEX ... USING hnsw ...` to `docker/init-db.sql`. That file runs via Postgres's `docker-entrypoint-initdb.d`, which fires exactly once, on a completely empty data volume — before the app has ever run and before `PGVector` (langchain) has lazily created `langchain_pg_embedding`. Placing the index DDL there would fail outright on a fresh volume, or (if defensively guarded on table existence) silently never create the index at all, since `init-db.sql` never runs again after that first boot. Implemented instead in `scripts/ingest_regulations.py::_ensure_hnsw_index()`, called right after each `PGVector.from_documents(...)` — idempotent (`CREATE INDEX IF NOT EXISTS`, explicitly named since Postgres requires a name for that clause). ADR-0004 updated with an implementation note explaining this, so the ADR keeps matching the real code.
 - **Fix 4 deviates from the plan's wording**: the plan (written from the grader's pre-verification snapshot) called for adding a `services: postgres` block to CI, because at the time `config.py` built a live DB-backed LLM cache at import. That root cause was already removed by the earlier import-side-effects fix (part 1), so `evals/eval_suite.py`'s current code path (direct LLM call, no retrieval/rerank/cache) genuinely doesn't touch Postgres — `DATABASE_URL` only needs to be *present* to satisfy `config.validate_required()`, hence a placeholder value in the workflow's `env:` block, with a comment flagging that this needs to become real if evals are ever extended to exercise caching or the full graph.
 - The workflow was also moved: real repo root is `Block 20` (where `.git` lives); it previously sat at `regwatch/.github/workflows/`, one level too deep for GitHub Actions to ever discover it. Now at `Block 20/.github/workflows/eval_gate.yml`, alongside the pre-existing unrelated `python-app.yml` (left untouched — not regwatch's concern).
 
