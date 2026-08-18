@@ -20,7 +20,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 | 3 | Reinject `guardrail_reason`/`critical_issues` into retry `HumanMessage` | ✅ | `tests/test_build_retry_feedback.py` (7 cases) |
 | 4 | Fix CI eval gate (env vars, workflow path, trigger filter) | ✅ | `tests/test_ci_eval_gate_collects.py` (3 cases) |
 | 5 | Create the HNSW index (relocated from plan's `docker/init-db.sql` to `scripts/ingest_regulations.py` — see note below) | ✅ | `tests/test_hnsw_index_sql.py` (4 cases) |
-| 6 | Gate/remove `ensure_prompts()` from startup lifespan | ✅ | `tests/test_no_prompt_registration_on_startup.py` (4 cases) |
+| 6 | Gate/remove `ensure_prompts()` from startup lifespan | ✅ | `tests/test_no_prompt_registration_on_startup.py` (5 cases) |
+| ➕ | **Adjacent bug fixed:** `pyproject.toml`'s console-script entry `regwatch-register-prompts = "scripts.register_prompts:main"` was broken — the module had no `main()`, only inline code under `if __name__ == "__main__":`. Extracted a `main()`, matching `promote_prompt.py`'s existing pattern. | ✅ | same test file, +1 case |
 | — | `analyze_compliance` exception branch missing `gap_report` key (bundled with #3) | ⬜ | |
 
 ## Phase 2 — P1: align code with the "Aceptada" ADRs

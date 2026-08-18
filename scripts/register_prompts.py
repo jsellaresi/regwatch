@@ -101,9 +101,13 @@ def ensure_prompts() -> None:
     logger.info("Prompt compliance-analyzer registrado con labels staging + production")
 
 
-if __name__ == "__main__":
+def main() -> None:
     import config
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     config.validate_required()
     ensure_prompts()
+
+
+if __name__ == "__main__":
+    main()

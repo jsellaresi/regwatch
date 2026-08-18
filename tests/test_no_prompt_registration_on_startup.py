@@ -1,11 +1,18 @@
-"""Regression test for fix 6.
+"""Regression test for fix 6, plus an adjacent bug found and fixed alongside it.
 
-Before this fix, api/main.py's lifespan called ensure_prompts() on every
-startup, which unconditionally creates a new Langfuse prompt version and
-labels it BOTH staging and production (register_prompts.py has no gating
-condition). That breaks the two things ADR-0009 wants: controlled promotion
-(nothing goes through the eval gate) and informe-version traceability (the
-version number tracks container restarts, not actual prompt changes).
+Fix 6: api/main.py's lifespan used to call ensure_prompts() on every startup,
+which unconditionally creates a new Langfuse prompt version and labels it
+BOTH staging and production (register_prompts.py has no gating condition).
+That breaks the two things ADR-0009 wants: controlled promotion (nothing
+goes through the eval gate) and informe-version traceability (the version
+number tracks container restarts, not actual prompt changes).
+
+Adjacent bug: pyproject.toml declares a console-script entry point
+(`regwatch-register-prompts = "scripts.register_prompts:main"`), but the
+module had no `main()` — its CLI logic lived directly under
+`if __name__ == "__main__":`. That entry point would have crashed with
+AttributeError. Fixed by extracting a `main()`, matching the existing
+pattern in promote_prompt.py.
 
 api/main.py is deliberately NOT imported here: its own top-level imports
 (langchain_openai, scripts.ingest_regulations -> PDFPlumberLoader) take
@@ -39,20 +46,23 @@ def test_manual_bootstrap_path_still_registers_prompts():
     # `docker compose exec api python -m scripts.register_prompts`) must
     # still work — this is now the *only* place prompts get registered.
     # scripts.register_prompts has no heavy imports, safe to import directly.
-    #
-    # Note: register_prompts.py has no `main()` function — its CLI behavior
-    # lives directly under `if __name__ == "__main__":`, unlike
-    # promote_prompt.py's `main()`. pyproject.toml's console-script entry
-    # (`regwatch-register-prompts = "scripts.register_prompts:main"`) is
-    # therefore broken (AttributeError) — a separate, pre-existing bug this
-    # test doesn't attempt to fix, just doesn't assume away.
-    from scripts.register_prompts import ensure_prompts
+    from scripts.register_prompts import ensure_prompts, main
 
     assert callable(ensure_prompts)
-    source = inspect.getsource(__import__("scripts.register_prompts", fromlist=["_"]))
-    assert '__name__ == "__main__"' in source
-    assert "ensure_prompts()" in source
-    assert "validate_required()" in source
+    main_source = inspect.getsource(main)
+    assert "ensure_prompts()" in main_source
+    assert "validate_required()" in main_source
+
+
+def test_pyproject_console_script_entry_point_resolves():
+    # pyproject.toml declares `regwatch-register-prompts =
+    # "scripts.register_prompts:main"` — this used to be a broken entry
+    # point (AttributeError) because the module had no `main()`, only inline
+    # code under `if __name__ == "__main__":`. Confirm the referenced
+    # attribute actually exists and is callable now.
+    import scripts.register_prompts as module
+
+    assert callable(getattr(module, "main", None))
 
 
 def test_readme_documents_the_manual_registration_step():
