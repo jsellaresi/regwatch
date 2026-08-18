@@ -17,7 +17,6 @@ import config
 from config import MODEL_CHAT
 from graph import get_graph, init_graph
 from api.interrupts import extract_interrupt_payload
-from scripts.register_prompts import ensure_prompts
 from scripts.ingest_regulations import ingest_regulation, REGULATIONS
 
 logger = logging.getLogger(__name__)
@@ -27,7 +26,13 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     config.validate_required()
     config.init_llm_cache()
-    ensure_prompts()
+    # Prompt registration/promotion is owned by the eval-gate CI pipeline
+    # (ADR-0009) — registering here on every restart used to create a new
+    # Langfuse version and label it BOTH staging and production unconditionally,
+    # bypassing the eval gate entirely and making the version number track
+    # container restarts instead of actual prompt changes. Bootstrap a fresh
+    # environment with `docker compose exec api python -m scripts.register_prompts`
+    # (already documented in README.md / GETTING-STARTED.md as a one-time step).
     await init_graph()
     logger.info("RegWatch graph initialized")
     yield
