@@ -2,6 +2,7 @@ import logging
 import re
 from langchain_anthropic import ChatAnthropic
 from config import MODEL_GUARDRAIL
+from graph.schemas import VALID_CITATION_RE
 from graph.state import RegWatchState
 
 logger = logging.getLogger(__name__)
@@ -55,10 +56,6 @@ MAX_OUTPUT_GUARDRAIL_RETRIES = 2
 def output_guardrail(state: RegWatchState) -> dict:
     report = state.get("gap_report", {})
     gaps = report.get("gaps", [])
-
-    VALID_CITATION_RE = re.compile(
-        r"^(GDPR|MiFID II|\d?AMLD) Art\. \d+(\(\d+\))?([a-z])?$"
-    )
 
     for gap in gaps:
         ref = gap.get("regulation_ref", "")

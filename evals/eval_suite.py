@@ -1,8 +1,7 @@
-import re
 from langchain_anthropic import ChatAnthropic
 from config import MODEL_ANALYZER
 from evals.golden_dataset import GOLDEN_CASES
-from graph.schemas import GapReport
+from graph.schemas import GapReport, VALID_CITATION_RE
 from config import langfuse
 
 llm = ChatAnthropic(model=MODEL_ANALYZER, temperature=0).with_structured_output(GapReport)
@@ -52,7 +51,6 @@ class TestPromptPromotion:
 
     def test_no_hallucinated_citations(self):
         results = [run_single_eval(c) for c in GOLDEN_CASES]
-        pattern = re.compile(r"^(GDPR|MiFID II|\d?AMLD) Art\.\s\d+(\(\d+\))?(\([a-z]\)|[a-z])?$")
         for r in results:
             for ref in r["predicted_refs"]:
-                assert pattern.match(ref), f"Cita con formato incorrecto: '{ref}'"
+                assert VALID_CITATION_RE.match(ref), f"Cita con formato incorrecto: '{ref}'"

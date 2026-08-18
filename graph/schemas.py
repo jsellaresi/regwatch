@@ -1,5 +1,13 @@
+import re
+
 from pydantic import BaseModel, Field
 from typing import Literal
+
+# Formato: "<prefijo> Art. <numero>" con cero o mas sufijos entre parentesis,
+# p.ej. "GDPR Art. 17", "GDPR Art. 17(1)", "GDPR Art. 5(1)(e)".
+VALID_CITATION_RE = re.compile(
+    r"^(GDPR|MiFID II|\d?AMLD) Art\. \d+(\([0-9a-z]+\))*$"
+)
 
 
 class Gap(BaseModel):
