@@ -1,13 +1,6 @@
 import pytest
 
-from tests.conftest import load_module_standalone
-
-# `graph/schemas.py` has no side effects of its own, but `import graph.schemas`
-# would still run `graph/__init__.py` first, which eagerly imports every node
-# (including retriever.py's real DB query at import time). Load the file
-# directly so this test only depends on what it actually needs: pydantic + re.
-schemas = load_module_standalone("regwatch_schemas_under_test", "graph/schemas.py")
-VALID_CITATION_RE = schemas.VALID_CITATION_RE
+from graph.schemas import VALID_CITATION_RE
 
 
 @pytest.mark.parametrize(

@@ -10,7 +10,14 @@ from graph.state import RegWatchState
 
 logger = logging.getLogger(__name__)
 
-llm_vision = ChatAnthropic(model=MODEL_VISION, max_tokens=4096)
+_llm_vision = None
+
+
+def _get_llm_vision():
+    global _llm_vision
+    if _llm_vision is None:
+        _llm_vision = ChatAnthropic(model=MODEL_VISION, max_tokens=4096)
+    return _llm_vision
 
 
 @observe(name="multimodal_extract")
@@ -32,7 +39,7 @@ def multimodal_extract(state: RegWatchState) -> dict:
         img_bytes = pix.tobytes("png")
         img_b64 = base64.b64encode(img_bytes).decode()
 
-        response = llm_vision.invoke([
+        response = _get_llm_vision().invoke([
             HumanMessage(content=[
                 {
                     "type": "image",

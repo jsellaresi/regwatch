@@ -10,8 +10,17 @@ from graph.state import RegWatchState
 
 logger = logging.getLogger(__name__)
 
-llm_enrich = ChatAnthropic(model=MODEL_ENRICH).bind_tools(ENRICH_TOOLS)
+# ToolNode itself has no API-key dependency, safe at import time.
 tools_node = ToolNode(ENRICH_TOOLS)
+
+_llm_enrich = None
+
+
+def _get_llm_enrich():
+    global _llm_enrich
+    if _llm_enrich is None:
+        _llm_enrich = ChatAnthropic(model=MODEL_ENRICH).bind_tools(ENRICH_TOOLS)
+    return _llm_enrich
 
 ENRICH_SYSTEM = (
     "Eres un asistente que enriquece un análisis de compliance. Decide si necesitas "
@@ -32,7 +41,7 @@ def enrich_agent(state: RegWatchState) -> dict:
             SystemMessage(content=ENRICH_SYSTEM),
             HumanMessage(content=f"Documento de política:\n{state['extracted_text'][:3000]}"),
         ]
-    response = llm_enrich.invoke(msgs)
+    response = _get_llm_enrich().invoke(msgs)
     if getattr(response, "tool_calls", None):
         logger.info("enrich_agent: %d tool call(s) requested", len(response.tool_calls))
     else:

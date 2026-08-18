@@ -10,8 +10,14 @@ from config import get_langfuse
 
 logger = logging.getLogger(__name__)
 
-llm_analyzer = ChatAnthropic(model=MODEL_ANALYZER, temperature=0.1)
-analyzer = llm_analyzer.with_structured_output(GapReport)
+_analyzer = None
+
+
+def _get_analyzer():
+    global _analyzer
+    if _analyzer is None:
+        _analyzer = ChatAnthropic(model=MODEL_ANALYZER, temperature=0.1).with_structured_output(GapReport)
+    return _analyzer
 
 
 def _get_versioned_prompt() -> tuple[str, str]:
@@ -37,7 +43,7 @@ def analyze_compliance(state: RegWatchState) -> dict:
                 "Genera el informe de compliance."
             )),
         ]
-        report: GapReport = analyzer.invoke(msgs)
+        report: GapReport = _get_analyzer().invoke(msgs)
         logger.info("analyze_compliance: %d gaps identified", len(report.gaps))
         return {"gap_report": report.model_dump(), "prompt_version": prompt_version, "error": ""}
     except Exception as e:

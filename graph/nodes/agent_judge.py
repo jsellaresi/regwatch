@@ -10,7 +10,14 @@ from graph.schemas import JudgeScores
 
 logger = logging.getLogger(__name__)
 
-llm_judge = ChatOpenAI(model=MODEL_JUDGE, temperature=0).with_structured_output(JudgeScores)
+_llm_judge = None
+
+
+def _get_llm_judge():
+    global _llm_judge
+    if _llm_judge is None:
+        _llm_judge = ChatOpenAI(model=MODEL_JUDGE, temperature=0).with_structured_output(JudgeScores)
+    return _llm_judge
 
 JUDGE_SYSTEM = """Eres un auditor experto en regulación financiera europea.
 Evalúa la calidad de un informe de compliance generado por IA en tres dimensiones (0-10):
@@ -31,7 +38,7 @@ def agent_judge(state: RegWatchState) -> dict:
          "## Informe a evaluar\n```json\n{report}\n```\n\n"
          "## Documento original (extracto)\n{document}\n\nEvalúa el informe."),
     ])
-    scores: JudgeScores = (prompt | llm_judge).invoke({
+    scores: JudgeScores = (prompt | _get_llm_judge()).invoke({
         "report": json.dumps(state["gap_report"], ensure_ascii=False),
         "document": state["extracted_text"][:2000],
     })
