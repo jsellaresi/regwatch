@@ -31,8 +31,10 @@ _cohere_raw        = os.getenv("COHERE_API_KEY", "").strip()
 COHERE_API_KEY     = "" if (not _cohere_raw or _cohere_raw.startswith("#")) else _cohere_raw
 DATABASE_URL       = os.getenv("DATABASE_URL", "")
 JIRA_API_TOKEN     = os.getenv("JIRA_API_TOKEN", "")
+JIRA_EMAIL         = os.getenv("JIRA_EMAIL", "")
 JIRA_ENABLED       = os.getenv("JIRA_ENABLED", "false").lower() == "true"
 JIRA_BASE_URL      = os.getenv("JIRA_BASE_URL", "https://your-org.atlassian.net")
+JIRA_PROJECT_KEY   = os.getenv("JIRA_PROJECT_KEY", "COMPL")
 EURLEX_BASE_URL    = "https://eur-lex.europa.eu/rest"
 TAVILY_API_KEY     = os.getenv("TAVILY_API_KEY", "")
 

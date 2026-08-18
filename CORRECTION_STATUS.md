@@ -33,7 +33,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 | 9 | Reranker multilingual model | ✅ *(done early, folded into the infra fix above)* | — |
 | 10 | `enrich_agent` tools: real `web_search_regulation`, loud `get_regulation_amendments` failure | ✅ | `tests/test_regulation_tools.py` (9 cases) |
 | 11 | Judge needs `retrieved_regulations`; compute `overall_score`/`approved` in Python | ✅ | `tests/test_judge_verdict.py` (9 cases) |
-| 12 | JIRA auth (Basic, not Bearer), API version, externalize project key | ⬜ | |
+| 12 | JIRA auth (Basic, not Bearer), API version, externalize project key | ✅ | `tests/test_jira_ticket.py` (9 cases) |
 | 13 | Dedupe tickets against `memory_diff["new"]` | ⬜ | |
 | 14 | Document retrieval query-size limitation in ADR-0004 (decomposition itself deferred) | ⬜ | |
 | 15 | Align ADR-0010 model claim with code | ⬜ | |
@@ -61,6 +61,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 ---
 
 ## Notes from fixes so far
+
+- **Flaky-test fix (found during fix 12's full-suite run):** `tests/test_import_side_effects.py` and `tests/test_ci_eval_gate_collects.py` spawn subprocesses that pay a ~15-20s cold-import cost. A 30s timeout was fine in isolation but intermittently failed when run as part of the full 81-test suite (system under load from other tests' own subprocess spawns) — a false failure, not a real regression (confirmed: same code, reran clean twice). Bumped both to 90s.
 
 - **Fix 5 deviates from the plan's wording**: the plan (following the grader's suggestion) said to add the `CREATE INDEX ... USING hnsw ...` to `docker/init-db.sql`. That file runs via Postgres's `docker-entrypoint-initdb.d`, which fires exactly once, on a completely empty data volume — before the app has ever run and before `PGVector` (langchain) has lazily created `langchain_pg_embedding`. Placing the index DDL there would fail outright on a fresh volume, or (if defensively guarded on table existence) silently never create the index at all, since `init-db.sql` never runs again after that first boot. Implemented instead in `scripts/ingest_regulations.py::_ensure_hnsw_index()`, called right after each `PGVector.from_documents(...)` — idempotent (`CREATE INDEX IF NOT EXISTS`, explicitly named since Postgres requires a name for that clause). ADR-0004 updated with an implementation note explaining this, so the ADR keeps matching the real code.
 - **Fix 4 deviates from the plan's wording**: the plan (written from the grader's pre-verification snapshot) called for adding a `services: postgres` block to CI, because at the time `config.py` built a live DB-backed LLM cache at import. That root cause was already removed by the earlier import-side-effects fix (part 1), so `evals/eval_suite.py`'s current code path (direct LLM call, no retrieval/rerank/cache) genuinely doesn't touch Postgres — `DATABASE_URL` only needs to be *present* to satisfy `config.validate_required()`, hence a placeholder value in the workflow's `env:` block, with a comment flagging that this needs to become real if evals are ever extended to exercise caching or the full graph.

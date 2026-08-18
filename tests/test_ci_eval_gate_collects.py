@@ -22,7 +22,8 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-TIMEOUT_SECONDS = 60
+TIMEOUT_SECONDS = 90  # see test_import_side_effects.py for why 90 and not 30-60:
+# observed flaky under full-suite system load, not in isolation.
 
 # Mirrors the `env:` block in Block 20/.github/workflows/eval_gate.yml.
 CI_ENV = {

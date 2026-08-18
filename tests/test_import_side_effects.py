@@ -23,8 +23,10 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-TIMEOUT_SECONDS = 30  # generous headroom over the ~15s cold import time; a
-# hang here (the original bug) would previously block far longer than this.
+TIMEOUT_SECONDS = 90  # generous headroom over the ~15-20s cold import time.
+# Observed flaky at 30s when run as part of the full suite (system under
+# load from other tests' own subprocess spawns) rather than in isolation —
+# this is still far below what an actual hang (the original bug) would need.
 
 # Vars this test suite cares about isolating per-case. Everything else is
 # inherited from the current process (Windows needs SYSTEMROOT etc. for its

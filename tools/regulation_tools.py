@@ -1,10 +1,25 @@
 import logging
 
 import requests
+from requests.auth import HTTPBasicAuth
 from langchain_core.tools import tool
-from config import EURLEX_BASE_URL, JIRA_API_TOKEN, JIRA_BASE_URL, TAVILY_API_KEY
+from config import (
+    EURLEX_BASE_URL, JIRA_API_TOKEN, JIRA_BASE_URL, JIRA_EMAIL, JIRA_PROJECT_KEY, TAVILY_API_KEY,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _to_adf(text: str) -> dict:
+    """Minimal Atlassian Document Format conversion: one paragraph per
+    non-empty line. Jira Cloud's v3 issue API requires `description` in ADF,
+    not plain text — v2 accepted plain text but is the wrong API version for
+    Cloud's Basic-auth model this tool now uses."""
+    paragraphs = [
+        {"type": "paragraph", "content": [{"type": "text", "text": line}]}
+        for line in text.splitlines() if line.strip()
+    ]
+    return {"type": "doc", "version": 1, "content": paragraphs or [{"type": "paragraph", "content": []}]}
 
 
 @tool
@@ -56,25 +71,28 @@ def create_jira_ticket(summary: str, description: str, priority: str) -> str:
         description: Descripción detallada con pasos de remediación
         priority: "High", "Medium" o "Low"
     """
-    headers = {
-        "Authorization": f"Bearer {JIRA_API_TOKEN}",
-        "Content-Type": "application/json",
-    }
     payload = {
         "fields": {
-            "project": {"key": "COMPL"},
+            "project": {"key": JIRA_PROJECT_KEY},
             "summary": summary,
-            "description": description,
+            "description": _to_adf(description),
             "issuetype": {"name": "Task"},
             "priority": {"name": priority},
         }
     }
-    response = requests.post(
-        f"{JIRA_BASE_URL}/rest/api/2/issue",
-        json=payload,
-        headers=headers,
-        timeout=10,
-    )
+    try:
+        response = requests.post(
+            f"{JIRA_BASE_URL}/rest/api/3/issue",
+            json=payload,
+            # Jira Cloud requires HTTP Basic auth (email:api_token), not
+            # Bearer — Bearer is a Jira Server/Data Center convention and
+            # would 401 against Cloud.
+            auth=HTTPBasicAuth(JIRA_EMAIL, JIRA_API_TOKEN),
+            timeout=10,
+        )
+    except requests.RequestException as exc:
+        logger.error("JIRA: ticket creation request failed: %s", exc)
+        return f"Error creando ticket: {exc}"
     logger.info("JIRA: create ticket priority=%s → status %d", priority, response.status_code)
     if response.status_code == 201:
         ticket_id = response.json()["key"]
