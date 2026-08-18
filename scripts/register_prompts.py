@@ -1,6 +1,6 @@
 import logging
 
-from config import langfuse
+from config import get_langfuse
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,7 @@ Analiza el documento de política interna proporcionado e identifica los gaps re
 def ensure_prompts() -> None:
     # Siempre crea nueva versión al ejecutar directamente; el arranque del API
     # puede llamar a esta función sabiendo que LangFuse versiona automáticamente.
-    langfuse.create_prompt(
+    get_langfuse().create_prompt(
         name="compliance-analyzer",
         prompt=SYSTEM_PROMPT_V2,
         labels=["staging", "production"],
@@ -102,5 +102,8 @@ def ensure_prompts() -> None:
 
 
 if __name__ == "__main__":
+    import config
+
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    config.validate_required()
     ensure_prompts()

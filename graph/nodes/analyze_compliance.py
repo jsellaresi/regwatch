@@ -6,7 +6,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langfuse import observe
 from graph.state import RegWatchState
 from graph.schemas import GapReport
-from config import langfuse
+from config import get_langfuse
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ analyzer = llm_analyzer.with_structured_output(GapReport)
 
 
 def _get_versioned_prompt() -> tuple[str, str]:
-    prompt_obj = langfuse.get_prompt("compliance-analyzer", label="production")
+    prompt_obj = get_langfuse().get_prompt("compliance-analyzer", label="production")
     return prompt_obj.prompt, str(prompt_obj.version)
 
 

@@ -2,13 +2,13 @@ from langchain_anthropic import ChatAnthropic
 from config import MODEL_ANALYZER
 from evals.golden_dataset import GOLDEN_CASES
 from graph.schemas import GapReport, VALID_CITATION_RE
-from config import langfuse
+from config import get_langfuse
 
 llm = ChatAnthropic(model=MODEL_ANALYZER, temperature=0).with_structured_output(GapReport)
 
 
 def run_single_eval(case: dict) -> dict:
-    prompt_obj = langfuse.get_prompt("compliance-analyzer", label="staging")
+    prompt_obj = get_langfuse().get_prompt("compliance-analyzer", label="staging")
     report: GapReport = llm.invoke(
         f"{prompt_obj.prompt}\n\nDocumento: {case['document_excerpt']}"
     )

@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
 from langgraph.types import Command
 from langchain_openai import ChatOpenAI
+import config
 from config import MODEL_CHAT
 from graph import get_graph, init_graph
 from scripts.register_prompts import ensure_prompts
@@ -23,6 +24,8 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    config.validate_required()
+    config.init_llm_cache()
     ensure_prompts()
     await init_graph()
     logger.info("RegWatch graph initialized")

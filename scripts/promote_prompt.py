@@ -1,12 +1,13 @@
 import argparse
 import logging
 
-from config import langfuse
+from config import get_langfuse
 
 logger = logging.getLogger(__name__)
 
 
 def promote_prompt(from_label: str, to_label: str):
+    langfuse = get_langfuse()
     prompt = langfuse.get_prompt("compliance-analyzer", label=from_label)
     langfuse.create_prompt(
         name="compliance-analyzer",
@@ -18,7 +19,10 @@ def promote_prompt(from_label: str, to_label: str):
 
 
 def main():
+    import config
+
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    config.validate_required()
     parser = argparse.ArgumentParser()
     parser.add_argument("--from", dest="from_label")
     parser.add_argument("--to", dest="to_label")

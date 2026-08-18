@@ -1,4 +1,4 @@
-from config import langfuse
+from config import get_langfuse
 
 
 def enrich_trace(state: dict, node_name: str, extra: dict = None):
@@ -8,6 +8,7 @@ def enrich_trace(state: dict, node_name: str, extra: dict = None):
 
 def log_judge_scores(state: dict):
     scores = state.get("judge_scores", {})
+    langfuse = get_langfuse()
     trace_id = langfuse.get_current_trace_id()
     if trace_id and scores:
         for name in ("legal_accuracy", "citation_quality", "actionability", "overall_score"):

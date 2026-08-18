@@ -13,16 +13,31 @@ logger = logging.getLogger(__name__)
 
 TOP_N = 5
 
-from sentence_transformers import CrossEncoder
-_local_ce = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+_local_ce = None
+_cohere = None
 
-if COHERE_API_KEY:
-    from langchain_cohere import CohereRerank
-    _cohere = CohereRerank(model=MODEL_RERANK_COHERE,
-                           top_n=TOP_N, cohere_api_key=COHERE_API_KEY)
-    logger.info("rerank: usando Cohere %s", MODEL_RERANK_COHERE)
-else:
-    logger.info("rerank: usando local cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+def _get_local_ce():
+    """Lazily load the local cross-encoder — this downloads/loads a model
+    file, so it must only happen on first real use, and only when Cohere
+    isn't configured (or as its fallback), not unconditionally at import."""
+    global _local_ce
+    if _local_ce is None:
+        from sentence_transformers import CrossEncoder
+
+        logger.info("rerank: cargando cross-encoder local %s", MODEL_RERANK_LOCAL)
+        _local_ce = CrossEncoder(MODEL_RERANK_LOCAL)
+    return _local_ce
+
+
+def _get_cohere():
+    global _cohere
+    if _cohere is None:
+        from langchain_cohere import CohereRerank
+
+        _cohere = CohereRerank(model=MODEL_RERANK_COHERE,
+                               top_n=TOP_N, cohere_api_key=COHERE_API_KEY)
+    return _cohere
 
 
 def rerank(state: RegWatchState) -> dict:
@@ -32,15 +47,15 @@ def rerank(state: RegWatchState) -> dict:
     if COHERE_API_KEY:
         docs = [Document(page_content=r["content"], metadata=r) for r in regs]
         try:
-            top_docs = _cohere.compress_documents(documents=docs, query=query)
+            top_docs = _get_cohere().compress_documents(documents=docs, query=query)
             top = [d.metadata | {"content": d.page_content} for d in top_docs]
         except _CohereUnauthorized:
             logger.warning("rerank: Cohere key inválida, usando cross-encoder local como fallback")
-            scores = _local_ce.predict([(query, r["content"]) for r in regs])
+            scores = _get_local_ce().predict([(query, r["content"]) for r in regs])
             ranked = sorted(zip(scores, regs), key=lambda x: x[0], reverse=True)
             top = [r for _, r in ranked[:TOP_N]]
     else:
-        scores = _local_ce.predict([(query, r["content"]) for r in regs])
+        scores = _get_local_ce().predict([(query, r["content"]) for r in regs])
         ranked = sorted(zip(scores, regs), key=lambda x: x[0], reverse=True)
         top = [r for _, r in ranked[:TOP_N]]
 

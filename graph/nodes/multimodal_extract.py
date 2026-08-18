@@ -1,12 +1,11 @@
 import logging
-
 import fitz
 import base64
 from langchain_anthropic import ChatAnthropic
 from config import MODEL_VISION
 from langchain_core.messages import HumanMessage
 from langfuse import observe
-from config import langfuse
+from config import get_langfuse
 from graph.state import RegWatchState
 
 logger = logging.getLogger(__name__)
@@ -16,7 +15,7 @@ llm_vision = ChatAnthropic(model=MODEL_VISION, max_tokens=4096)
 
 @observe(name="multimodal_extract")
 def multimodal_extract(state: RegWatchState) -> dict:
-    trace_url = langfuse.get_trace_url() or ""
+    trace_url = get_langfuse().get_trace_url() or ""
     doc = fitz.open(stream=state["document_bytes"], filetype="pdf")
     logger.info("multimodal_extract: %s — %d pages", state["document_name"], len(doc))
 

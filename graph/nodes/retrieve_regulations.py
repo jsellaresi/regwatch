@@ -1,6 +1,6 @@
 import logging
 
-from retriever import HYBRID_RETRIEVER
+from retriever import get_hybrid_retriever
 from graph.state import RegWatchState
 
 logger = logging.getLogger(__name__)
@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 def retrieve_regulations(state: RegWatchState) -> dict:
     query = state["extracted_text"][:2000]
-    docs = HYBRID_RETRIEVER.invoke(query)
+    docs = get_hybrid_retriever().invoke(query)
     logger.info("retrieve_regulations: %d docs retrieved", len(docs))
     return {
         "retrieved_regulations": [
