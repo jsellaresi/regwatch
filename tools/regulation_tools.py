@@ -2,7 +2,7 @@ import logging
 
 import requests
 from langchain_core.tools import tool
-from config import EURLEX_BASE_URL, JIRA_API_TOKEN, JIRA_BASE_URL
+from config import EURLEX_BASE_URL, JIRA_API_TOKEN, JIRA_BASE_URL, TAVILY_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +17,28 @@ def get_regulation_amendments(regulation_id: str, since_date: str) -> str:
         since_date: Fecha desde la que buscar enmiendas (formato YYYY-MM-DD)
     """
     url = f"{EURLEX_BASE_URL}/document/{regulation_id}/amendments"
-    response = requests.get(url, params={"since": since_date}, timeout=10)
+    try:
+        response = requests.get(url, params={"since": since_date}, timeout=10)
+    except requests.RequestException as exc:
+        logger.error("EUR-Lex: amendments request failed for %s: %s", regulation_id, exc)
+        return (
+            f"[ERROR] No se pudo consultar enmiendas para {regulation_id}: {exc}. "
+            "La consulta falló, no dio un resultado negativo — no asumas que no hay enmiendas."
+        )
     logger.info("EUR-Lex: GET amendments for %s since %s → status %d", regulation_id, since_date, response.status_code)
     if response.status_code != 200:
-        return f"No se encontraron enmiendas para {regulation_id}"
+        # This endpoint (rest/document/{id}/amendments) doesn't exist on EUR-Lex
+        # today (EUR-Lex exposes SPARQL/Cellar, not this REST shape) — it always
+        # 404s. Surface that as a distinct failure rather than a false "no
+        # amendments found", so the analyzer doesn't treat a broken lookup as a
+        # verified negative. Replacing this with the real SPARQL/Cellar query is
+        # a larger follow-up, not part of this fix.
+        logger.error("EUR-Lex: amendments lookup failed for %s: status %d", regulation_id, response.status_code)
+        return (
+            f"[ERROR] No se pudo consultar enmiendas para {regulation_id}: "
+            f"la API de EUR-Lex devolvió status {response.status_code}. "
+            "La consulta falló, no dio un resultado negativo — no asumas que no hay enmiendas."
+        )
     data = response.json()
     amendments = data.get("amendments", [])
     if not amendments:
@@ -72,11 +90,28 @@ def web_search_regulation(query: str) -> str:
 
     Args:
         query: Consulta en lenguaje natural sobre regulación
-
-    NOTE: This is a stub implementation. For production, integrate a real search
-    API (e.g. Tavily, SerpAPI) and replace the return value below.
     """
-    return f"[Simulado] Resultados de búsqueda para: {query}"
+    if not TAVILY_API_KEY:
+        return "Búsqueda web no disponible: falta configurar TAVILY_API_KEY."
+    try:
+        response = requests.post(
+            "https://api.tavily.com/search",
+            json={"api_key": TAVILY_API_KEY, "query": query, "max_results": 3},
+            timeout=10,
+        )
+    except requests.RequestException as exc:
+        logger.error("Tavily: search request failed: %s", exc)
+        return f"[ERROR] Búsqueda web falló para '{query}': {exc}"
+    if response.status_code != 200:
+        logger.error("Tavily: search failed for '%s': status %d", query, response.status_code)
+        return f"[ERROR] Búsqueda web falló para '{query}': status {response.status_code}"
+    results = response.json().get("results", [])
+    if not results:
+        return f"Sin resultados de búsqueda web para: {query}"
+    return "\n".join(
+        f"- {r.get('title', 'Sin título')}: {r.get('content', '')[:200]} ({r.get('url', '')})"
+        for r in results[:3]
+    )
 
 
 ENRICH_TOOLS = [get_regulation_amendments, web_search_regulation]

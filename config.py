@@ -33,6 +33,7 @@ JIRA_API_TOKEN     = os.getenv("JIRA_API_TOKEN", "")
 JIRA_ENABLED       = os.getenv("JIRA_ENABLED", "false").lower() == "true"
 JIRA_BASE_URL      = os.getenv("JIRA_BASE_URL", "https://your-org.atlassian.net")
 EURLEX_BASE_URL    = "https://eur-lex.europa.eu/rest"
+TAVILY_API_KEY     = os.getenv("TAVILY_API_KEY", "")
 
 # ── Model names ──────────────────────────────────────────────────────────────
 MODEL_ANALYZER      = "claude-haiku-4-5"
