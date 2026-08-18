@@ -7,6 +7,7 @@ from langchain_openai import OpenAIEmbeddings
 from config import MODEL_EMBEDDINGS
 from langchain_community.vectorstores import PGVector
 from sqlalchemy import create_engine, text
+from cache_invalidation import invalidate_analysis_cache
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,10 @@ def ingest_regulation(pdf_path: str, regulation_name: str,
         connection_string=CONNECTION_STRING,
     )
     _ensure_hnsw_index(CONNECTION_STRING)
+    # ADR-0006: a cached report may cite text from this regulation's previous
+    # version — clear it rather than risk serving a gap analysis against a
+    # since-amended article.
+    invalidate_analysis_cache(reason=f"regulation re-ingested: {regulation_name} ({celex})")
     logger.info("Ingestados %d chunks de %s (%s)", len(chunks), regulation_name, celex)
 
 

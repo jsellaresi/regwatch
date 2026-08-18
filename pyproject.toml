@@ -49,7 +49,7 @@ build-backend = "setuptools.build_meta"
 # Declarar el build-system hace el proyecto instalable, así `uv sync` lo instala en modo
 # editable y `from graph.nodes import ...` resuelve desde cualquier sitio (tests, scripts, Docker).
 [tool.setuptools]
-py-modules = ["config", "retriever"]
+py-modules = ["config", "retriever", "cache_invalidation"]
 
 [tool.setuptools.packages.find]
 include = ["graph*", "tools*", "observability*", "evals*", "scripts*", "api*"]

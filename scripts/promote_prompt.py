@@ -2,6 +2,7 @@ import argparse
 import logging
 
 from config import get_langfuse
+from cache_invalidation import invalidate_analysis_cache
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,12 @@ def promote_prompt(from_label: str, to_label: str):
         config=prompt.config,
     )
     logger.info("Prompt v%s promovido de '%s' a '%s'", prompt.version, from_label, to_label)
+
+    # ADR-0006: only "production" is what analyze_compliance actually reads —
+    # promoting to any other label doesn't change live analysis behavior, so
+    # there's nothing stale to invalidate.
+    if to_label == "production":
+        invalidate_analysis_cache(reason=f"prompt v{prompt.version} promoted to production")
 
 
 def main():
