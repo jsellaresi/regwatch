@@ -34,7 +34,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 | 10 | `enrich_agent` tools: real `web_search_regulation`, loud `get_regulation_amendments` failure | ✅ | `tests/test_regulation_tools.py` (9 cases) |
 | 11 | Judge needs `retrieved_regulations`; compute `overall_score`/`approved` in Python | ✅ | `tests/test_judge_verdict.py` (9 cases) |
 | 12 | JIRA auth (Basic, not Bearer), API version, externalize project key | ✅ | `tests/test_jira_ticket.py` (9 cases) |
-| 13 | Dedupe tickets against `memory_diff["new"]` | ⬜ | |
+| 13 | Dedupe tickets against `memory_diff["new"]` | ✅ | `tests/test_ticket_dedup.py` (6 cases) |
 | 14 | Document retrieval query-size limitation in ADR-0004 (decomposition itself deferred) | ⬜ | |
 | 15 | Align ADR-0010 model claim with code | ⬜ | |
 
@@ -61,6 +61,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 ---
 
 ## Notes from fixes so far
+
+- **Fix 13 clarification**: `memory_diff` is NOT computed via a dedicated graph node — `diff_with_memory()` is called directly inside `format_report.py` (a plain function call, not `add_node`'d), and `format_report`'s return dict includes `memory_diff`. Since the graph edge order is `format_report → write_cache → create_tickets`, `state["memory_diff"]` is already populated by the time `create_tickets` runs — no new node/edge was needed for this fix. (This does still leave grader finding 24's minor observability nit intact — `diff_with_memory` doesn't get its own span/trace entry since it's not a node — untouched, out of scope for fix 13.)
 
 - **Flaky-test fix (found during fix 12's full-suite run):** `tests/test_import_side_effects.py` and `tests/test_ci_eval_gate_collects.py` spawn subprocesses that pay a ~15-20s cold-import cost. A 30s timeout was fine in isolation but intermittently failed when run as part of the full 81-test suite (system under load from other tests' own subprocess spawns) — a false failure, not a real regression (confirmed: same code, reran clean twice). Bumped both to 90s.
 

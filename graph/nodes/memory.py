@@ -8,8 +8,16 @@ from config import DATABASE_URL
 logger = logging.getLogger(__name__)
 
 
+def gap_key(gap: dict) -> str:
+    """Identity key for a gap, used both to diff against episodic memory
+    here and (in create_tickets.py) to decide which gaps are genuinely new
+    since the policy's last analysis. Kept as a single shared function so
+    the two can't independently drift apart."""
+    return f"{gap['regulation_ref']}::{gap['gap_description'][:80]}"
+
+
 def _gap_keys(report: dict) -> set[str]:
-    return {f"{g['regulation_ref']}::{g['gap_description'][:80]}" for g in report.get("gaps", [])}
+    return {gap_key(g) for g in report.get("gaps", [])}
 
 
 def diff_with_memory(state: RegWatchState) -> dict:
