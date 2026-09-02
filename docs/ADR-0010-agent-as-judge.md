@@ -14,8 +14,10 @@ control de calidad automático y objetivo antes de emitir el informe o abrir tic
 Introducir un nodo **Agent-as-Judge** que puntúa el informe en tres dimensiones (`legal_accuracy`,
 `citation_quality`, `actionability`) y decide `approved`. Dos decisiones clave:
 
-1. **Modelo distinto al analizador:** el analizador usa `claude-sonnet-4-6`; el juez usa `gpt-4o`.
-   Un evaluador independiente reduce el sesgo de evaluar el propio razonamiento.
+1. **Modelo distinto al analizador:** el analizador usa `claude-haiku-4-5`; el juez usa `gpt-4o`.
+   Un evaluador independiente reduce el sesgo de evaluar el propio razonamiento. (Nota: si se revisa
+   esta elección de modelo, las IDs de generación actual son `claude-sonnet-5` / `claude-opus-5` —
+   informativo, no una recomendación de cambio.)
 2. **Salida estructurada** (`JudgeScores`, ver [ADR-0008](ADR-0008-salida-estructurada-pydantic.md))
    y bucle de reintento **acotado** (máx. 3): si no aprueba, reintenta el análisis; al agotar los
    intentos, **no se fuerza el paso** sino que se escala a revisión humana

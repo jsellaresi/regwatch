@@ -36,7 +36,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 | 12 | JIRA auth (Basic, not Bearer), API version, externalize project key | ✅ | `tests/test_jira_ticket.py` (9 cases) |
 | 13 | Dedupe tickets against `memory_diff["new"]` | ✅ | `tests/test_ticket_dedup.py` (6 cases) |
 | 14 | Retrieval query decomposition — **implemented for real** (upgraded from the doc-only "known limitation" note per follow-up instruction; see note below) | ✅ | `tests/test_retrieval_query_decomposition.py` (11 cases) + `tests/test_adr_documents_retrieval_limitation.py` (4 cases, updated) |
-| 15 | Align ADR-0010 model claim with code | ⬜ | |
+| 15 | Align ADR-0010 model claim with code | ✅ | `tests/test_adr_0010_model_alignment.py` (4 cases) |
 
 ## Phase 3 — P2: robustness, security, cost
 
