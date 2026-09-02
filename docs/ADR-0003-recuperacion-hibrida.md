@@ -37,6 +37,25 @@ retrievers operan sobre idéntico corpus y elimina un coste por petición.
 - Mantener dos índices (vectorial + BM25 en memoria) consume algo más de RAM en el proceso.
 - BM25 en memoria debe reconstruirse si el corpus cambia (re-ingesta → reinicio o recarga).
 
+**Descomposición de query (implementada):** `graph/nodes/retrieve_regulations.py` inicialmente usaba
+`extracted_text[:2000]` como *única* query — los primeros 2.000 caracteres del documento de política,
+embebidos de una sola vez. Cuando una política mezcla varios temas (protección de datos, idoneidad
+MiFID, KYC/AML) en secciones distintas, o cuando el texto relevante para un gap cae después del
+carácter 2.000, ese texto nunca entraba siquiera en el conjunto de k=20 candidatos — un artículo no
+recuperado es un gap no detectado, no un "false negative" inocuo en compliance.
+
+Corregido dividiendo el documento en queries por sección/cláusula con
+`RecursiveCharacterTextSplitter` (separadores `"\nSección"`, `"\nSection"`, `"\nCláusula"`,
+`"\nClause"`, `"\n\n"`, `"\n"` — mismo paquete que ya usa `scripts/ingest_regulations.py` para trocear
+las regulaciones del corpus), invocando `get_hybrid_retriever().invoke(query)` una vez por sección
+(tope de `MAX_SECTIONS = 8` por coste/latencia) y deduplicando el resultado combinado por
+`(regulation, content)`. Un documento que cabe en una sola query (`<= 2.000` caracteres) sigue
+haciendo exactamente una llamada de recuperación — comportamiento sin cambios para documentos cortos.
+El reranking ([ADR-0005](ADR-0005-reranking-cross-encoder.md)) sigue reduciendo el conjunto —ahora más
+diverso— a `TOP_N = 5` sin cambios propios: la descomposición mejora qué entra al *pool* de candidatos,
+no cómo se recorta al final. Si cinco chunks siguen sin cubrir todos los temas de una política
+compleja tras esta corrección, subir `TOP_N` es un ajuste de sintonía pendiente, no parte de este ADR.
+
 ## Alternativas consideradas
 
 - **Solo semántico (pgvector):** descartado; falla en citas/términos exactos.

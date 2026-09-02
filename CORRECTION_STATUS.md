@@ -35,7 +35,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 | 11 | Judge needs `retrieved_regulations`; compute `overall_score`/`approved` in Python | ✅ | `tests/test_judge_verdict.py` (9 cases) |
 | 12 | JIRA auth (Basic, not Bearer), API version, externalize project key | ✅ | `tests/test_jira_ticket.py` (9 cases) |
 | 13 | Dedupe tickets against `memory_diff["new"]` | ✅ | `tests/test_ticket_dedup.py` (6 cases) |
-| 14 | Document retrieval query-size limitation in ADR-0004 (decomposition itself deferred) | ⬜ | |
+| 14 | Retrieval query decomposition — **implemented for real** (upgraded from the doc-only "known limitation" note per follow-up instruction; see note below) | ✅ | `tests/test_retrieval_query_decomposition.py` (11 cases) + `tests/test_adr_documents_retrieval_limitation.py` (4 cases, updated) |
 | 15 | Align ADR-0010 model claim with code | ⬜ | |
 
 ## Phase 3 — P2: robustness, security, cost
@@ -55,12 +55,13 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 
 ## Deferred (explicit follow-up, not in this pass)
 
-- Query decomposition in retrieval (finding 13) — half-day design change.
 - Full `tests/` suite as a dedicated pass — individual fixes are seeding `tests/` as they go, but a comprehensive pass (fixtures, coverage config) is still separate.
 
 ---
 
 ## Notes from fixes so far
+
+- **Fix 14 upgraded from doc-only to a real implementation.** First pass only documented the single-query limitation in ADR-0003 (relocated there from the plan's suggested ADR-0004, since ADR-0003 owns retrieval strategy, not the vector index). Per follow-up instruction ("plan the correct fix... not postpone it"), implemented for real: `graph/nodes/retrieve_regulations.py` now splits the policy document into section/clause-sized queries with `RecursiveCharacterTextSplitter` (separators tuned for `"Sección"`/`"Cláusula"`-style headers, matching the golden dataset's real fixture format), runs the hybrid retriever once per section (capped at `MAX_SECTIONS = 8`), and dedupes the combined results by `(regulation, content)` before handing off to the unchanged `rerank.py`/`TOP_N=5` cut. Short documents (`<= 2000` chars) still take exactly one retrieval call — no behavior change there. Added `langchain-text-splitters` as an explicit `pyproject.toml` dependency (was previously only transitive via `langchain`). ADR-0003 rewritten to describe the implemented approach instead of the deferred note.
 
 - **Fix 13 clarification**: `memory_diff` is NOT computed via a dedicated graph node — `diff_with_memory()` is called directly inside `format_report.py` (a plain function call, not `add_node`'d), and `format_report`'s return dict includes `memory_diff`. Since the graph edge order is `format_report → write_cache → create_tickets`, `state["memory_diff"]` is already populated by the time `create_tickets` runs — no new node/edge was needed for this fix. (This does still leave grader finding 24's minor observability nit intact — `diff_with_memory` doesn't get its own span/trace entry since it's not a node — untouched, out of scope for fix 13.)
 
