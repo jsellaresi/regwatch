@@ -1,10 +1,10 @@
 import hashlib
-import json
 import logging
 
-import psycopg2
+from psycopg.types.json import Jsonb
 from graph.state import RegWatchState
-from config import DATABASE_URL, CACHE_TTL_SECONDS
+from config import CACHE_TTL_SECONDS
+from db import get_pool
 
 logger = logging.getLogger(__name__)
 
@@ -13,16 +13,17 @@ def _hash(document_bytes: bytes) -> str:
     return hashlib.sha256(document_bytes).hexdigest()
 
 
-def check_cache(state: RegWatchState) -> dict:
+async def check_cache(state: RegWatchState) -> dict:
     doc_hash = _hash(state["document_bytes"])
-    with psycopg2.connect(DATABASE_URL) as conn, conn.cursor() as cur:
-        cur.execute(
+    pool = await get_pool()
+    async with pool.connection() as conn, conn.cursor() as cur:
+        await cur.execute(
             """SELECT final_report FROM analysis_cache
                WHERE doc_hash = %s
                  AND created_at > now() - (%s || ' seconds')::interval""",
             (doc_hash, CACHE_TTL_SECONDS),
         )
-        row = cur.fetchone()
+        row = await cur.fetchone()
     if row:
         logger.info("check_cache: HIT hash=%s", doc_hash[:12])
         return {"doc_hash": doc_hash, "cache_hit": True, "final_report": row[0]}
@@ -30,15 +31,16 @@ def check_cache(state: RegWatchState) -> dict:
     return {"doc_hash": doc_hash, "cache_hit": False}
 
 
-def write_cache(state: RegWatchState) -> dict:
+async def write_cache(state: RegWatchState) -> dict:
     logger.info("write_cache: hash=%s", state["doc_hash"][:12])
-    with psycopg2.connect(DATABASE_URL) as conn, conn.cursor() as cur:
-        cur.execute(
+    pool = await get_pool()
+    async with pool.connection() as conn, conn.cursor() as cur:
+        await cur.execute(
             """INSERT INTO analysis_cache (doc_hash, final_report)
                VALUES (%s, %s)
                ON CONFLICT (doc_hash) DO UPDATE
                  SET final_report = EXCLUDED.final_report, created_at = now()""",
-            (state["doc_hash"], json.dumps(state["final_report"])),
+            (state["doc_hash"], Jsonb(state["final_report"])),
         )
     return {}
 

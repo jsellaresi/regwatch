@@ -1,7 +1,6 @@
 import logging
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from psycopg_pool import AsyncConnectionPool
 from graph.state import RegWatchState
 from graph.nodes import (
     check_cache, write_cache, route_after_cache,
@@ -15,7 +14,7 @@ from graph.nodes import (
     human_review_checkpoint, route_after_human,
     format_report, create_tickets, store_episodic_memory,
 )
-from config import DATABASE_URL
+from db import get_pool
 
 logger = logging.getLogger(__name__)
 
@@ -90,14 +89,7 @@ def create_regwatch_graph(checkpointer):
 
 async def init_graph():
     global _graph
-    logger.info("init_graph: opening async connection pool")
-    pool = AsyncConnectionPool(
-        conninfo=DATABASE_URL,
-        max_size=20,
-        open=False,
-        kwargs={"autocommit": True, "prepare_threshold": 0},
-    )
-    await pool.open()
+    pool = await get_pool()
     checkpointer = AsyncPostgresSaver(pool)
     await checkpointer.setup()
     _graph = create_regwatch_graph(checkpointer)

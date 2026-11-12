@@ -1,9 +1,8 @@
-import json
 import logging
 
-import psycopg2
+from psycopg.types.json import Jsonb
 from graph.state import RegWatchState
-from config import DATABASE_URL
+from db import get_pool
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +19,13 @@ def _gap_keys(report: dict) -> set[str]:
     return {gap_key(g) for g in report.get("gaps", [])}
 
 
-def diff_with_memory(state: RegWatchState) -> dict:
-    with psycopg2.connect(DATABASE_URL) as conn, conn.cursor() as cur:
-        cur.execute(
+async def diff_with_memory(state: RegWatchState) -> dict:
+    pool = await get_pool()
+    async with pool.connection() as conn, conn.cursor() as cur:
+        await cur.execute(
             "SELECT gap_report FROM policy_episodes WHERE policy_id = %s "
             "ORDER BY created_at DESC LIMIT 1", (state["policy_id"],))
-        row = cur.fetchone()
+        row = await cur.fetchone()
     prev = _gap_keys(row[0]) if row else set()
     curr = _gap_keys(state["gap_report"])
     memory_diff = {
@@ -41,10 +41,11 @@ def diff_with_memory(state: RegWatchState) -> dict:
     return {"memory_diff": memory_diff}
 
 
-def store_episodic_memory(state: RegWatchState) -> dict:
-    with psycopg2.connect(DATABASE_URL) as conn, conn.cursor() as cur:
-        cur.execute(
+async def store_episodic_memory(state: RegWatchState) -> dict:
+    pool = await get_pool()
+    async with pool.connection() as conn, conn.cursor() as cur:
+        await cur.execute(
             "INSERT INTO policy_episodes (policy_id, gap_report) VALUES (%s, %s)",
-            (state["policy_id"], json.dumps(state["gap_report"])))
+            (state["policy_id"], Jsonb(state["gap_report"])))
     logger.info("episodic_memory: stored for policy_id=%s", state["policy_id"])
     return {}

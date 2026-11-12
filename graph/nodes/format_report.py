@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 @observe(name="format_report")
-def format_report(state: RegWatchState) -> dict:
-    memory_diff = diff_with_memory(state)["memory_diff"]
+async def format_report(state: RegWatchState) -> dict:
+    memory_diff = (await diff_with_memory(state))["memory_diff"]
     final = {
         "status": "completed",
         "document_name": state["document_name"],
