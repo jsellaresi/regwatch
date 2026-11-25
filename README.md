@@ -155,6 +155,10 @@ uv run pytest evals -q        # eval suite against the golden dataset (needs liv
 
 CI runs lint and unit tests on every push (`.github/workflows/health-check.yml`) and gates prompt promotion on the eval suite (`.github/workflows/eval_gate.yml`).
 
+### CI and secrets
+
+The eval gate calls paid LLM APIs, so it only runs for the repository owner, on `main` or manually, and reads its keys from the `evals` GitHub environment (restricted to `main`). Pull requests from forks never receive secrets, and external contributors' workflows need approval before they run.
+
 ## License
 
 [MIT](LICENSE)

@@ -81,3 +81,34 @@ def test_eval_gate_push_trigger_is_limited_to_main():
     workflow = yaml.safe_load((REPO_ROOT / ".github" / "workflows" / "eval_gate.yml").read_text(encoding="utf-8"))
     triggers = workflow.get("on", workflow.get(True))
     assert triggers["push"]["branches"] == ["main"]
+
+
+def _workflow(name):
+    import yaml
+
+    return yaml.safe_load((REPO_ROOT / ".github" / "workflows" / name).read_text(encoding="utf-8"))
+
+
+def _triggers(workflow):
+    return workflow.get("on", workflow.get(True))
+
+
+def test_workflows_never_use_triggers_that_expose_secrets_to_outsiders():
+    for path in (REPO_ROOT / ".github" / "workflows").glob("*.yml"):
+        triggers = _triggers(_workflow(path.name))
+        assert "pull_request_target" not in triggers, path.name
+        assert "issue_comment" not in triggers, path.name
+
+
+def test_workflows_declare_read_only_token_permissions():
+    for path in (REPO_ROOT / ".github" / "workflows").glob("*.yml"):
+        assert _workflow(path.name)["permissions"] == {"contents": "read"}, path.name
+
+
+def test_eval_gate_spends_credits_only_for_the_owner_on_main_via_the_evals_environment():
+    workflow = _workflow("eval_gate.yml")
+    triggers = _triggers(workflow)
+    assert "pull_request" not in triggers
+    job = workflow["jobs"]["eval-gate"]
+    assert job["environment"] == "evals"
+    assert job["if"] == "github.actor == github.repository_owner"
