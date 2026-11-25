@@ -5,6 +5,7 @@ description = "RegWatch — Intelligent Compliance Analysis Platform"
 requires-python = ">=3.12"
 dependencies = [
     "langchain",
+    "langchain-classic",
     "langgraph",
     "langgraph-checkpoint-postgres",
     "langchain-anthropic",
