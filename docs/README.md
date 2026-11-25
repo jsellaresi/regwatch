@@ -1,34 +1,34 @@
 # Architecture Decision Records — RegWatch
 
-Este directorio registra las **decisiones de arquitectura** (ADRs) del sistema RegWatch, la
-plataforma de análisis de compliance.
+This directory records the **architecture decisions** (ADRs) of the RegWatch system, the
+compliance-analysis platform.
 
-Cada ADR documenta el *por qué* de una decisión: el contexto, la opción elegida, sus consecuencias
-y las alternativas descartadas. Formato basado en [MADR](https://adr.github.io/madr/).
+Each ADR documents the *why* of a decision: the context, the chosen option, its consequences and the
+rejected alternatives. Format based on [MADR](https://adr.github.io/madr/).
 
 > **New to RegWatch?** Start with [GETTING-STARTED.md](GETTING-STARTED.md) for setup and usage.
 
-## Índice
+## Index
 
-| #    | Decisión | Estado |
+| #    | Decision | Status |
 |------|----------|--------|
-| [0001](ADR-0001-langgraph-orquestador.md) | LangGraph (StateGraph) como orquestador central | Aceptada |
-| [0002](ADR-0002-postgres-almacen-unificado.md) | PostgreSQL como almacén unificado (pgvector + checkpoints + cache + memoria) | Aceptada |
-| [0003](ADR-0003-recuperacion-hibrida.md) | Recuperación híbrida: pgvector + BM25 con Reciprocal Rank Fusion | Aceptada |
-| [0004](ADR-0004-indice-vectorial-hnsw.md) | Índice vectorial HNSW e índices de base de datos | Aceptada |
-| [0005](ADR-0005-reranking-cross-encoder.md) | Reranking con cross-encoder | Aceptada |
-| [0006](ADR-0006-caching.md) | Estrategia de caching (resultado + LLM) | Aceptada |
-| [0007](ADR-0007-guardrails-dos-capas.md) | Guardrails de dos capas con tope de reintentos | Aceptada |
-| [0008](ADR-0008-salida-estructurada-pydantic.md) | Salida estructurada con Pydantic | Aceptada |
-| [0009](ADR-0009-versionado-prompts-eval-gate.md) | Versionado de prompts + eval gate en CI | Aceptada |
-| [0010](ADR-0010-agent-as-judge.md) | Agent-as-Judge con modelo distinto | Aceptada |
-| [0011](ADR-0011-human-in-the-loop-interrupt.md) | Human-in-the-loop con `interrupt()` | Aceptada |
-| [0012](ADR-0012-patron-tools.md) | Patrón de tools: recopilar con LLM vs actuar determinista | Aceptada |
-| [0013](ADR-0013-memoria-episodica.md) | Memoria episódica únicamente (no conversacional) | Aceptada |
-| [0014](ADR-0014-multimodal-vision.md) | Extracción multimodal con Claude Vision | Aceptada |
+| [0001](ADR-0001-langgraph-orchestrator.md) | LangGraph (StateGraph) as the central orchestrator | Accepted |
+| [0002](ADR-0002-postgres-unified-store.md) | PostgreSQL as the unified store (pgvector + checkpoints + cache + memory) | Accepted |
+| [0003](ADR-0003-hybrid-retrieval.md) | Hybrid retrieval: pgvector + BM25 with Reciprocal Rank Fusion | Accepted |
+| [0004](ADR-0004-hnsw-vector-index.md) | HNSW vector index and database indexes | Accepted |
+| [0005](ADR-0005-cross-encoder-reranking.md) | Reranking with a cross-encoder | Accepted |
+| [0006](ADR-0006-caching.md) | Caching strategy (result + LLM) | Accepted |
+| [0007](ADR-0007-two-layer-guardrails.md) | Two-layer guardrails with a retry cap | Accepted |
+| [0008](ADR-0008-structured-output-pydantic.md) | Structured output with Pydantic | Accepted |
+| [0009](ADR-0009-prompt-versioning-eval-gate.md) | Prompt versioning + eval gate in CI | Accepted |
+| [0010](ADR-0010-agent-as-judge.md) | Agent-as-Judge with a different model | Accepted |
+| [0011](ADR-0011-human-in-the-loop-interrupt.md) | Human-in-the-loop with `interrupt()` | Accepted |
+| [0012](ADR-0012-tools-pattern.md) | Tools pattern: gather with an LLM vs act deterministically | Accepted |
+| [0013](ADR-0013-episodic-memory.md) | Episodic memory only (not conversational) | Accepted |
+| [0014](ADR-0014-multimodal-vision.md) | Multimodal extraction with Claude Vision | Accepted |
 
-## Convenciones
+## Conventions
 
-- **Estados posibles:** Propuesta · Aceptada · Rechazada · Reemplazada por ADR-NNNN.
-- Las ADRs son **inmutables**: si una decisión cambia, se crea una nueva ADR que reemplaza a la anterior.
-- Numeración secuencial de cuatro dígitos. La fecha es la de aceptación.
+- **Possible statuses:** Proposed · Accepted · Rejected · Superseded by ADR-NNNN.
+- ADRs are **immutable**: if a decision changes, a new ADR is created that supersedes the previous one.
+- Sequential four-digit numbering. The date is the acceptance date.

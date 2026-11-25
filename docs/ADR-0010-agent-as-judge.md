@@ -1,50 +1,48 @@
-# ADR-0010: Agent-as-Judge con modelo distinto
+# ADR-0010: Agent-as-Judge with a different model
 
-- **Estado:** Aceptada
-- **Fecha:** 2026-06-25
+- **Status:** Accepted
+- **Date:** 2026-06-25
 
-## Contexto
+## Context
 
-La calidad de un informe de compliance no se puede garantizar solo con el modelo que lo genera: los
-LLMs tienden a evaluar favorablemente su propio output (sesgo de auto-complacencia). Hace falta un
-control de calidad automático y objetivo antes de emitir el informe o abrir tickets.
+The quality of a compliance report cannot be guaranteed by the model that generates it alone: LLMs tend to evaluate
+their own output favorably (self-complacency bias). An automatic, objective quality control is needed before the
+report is issued or tickets are opened.
 
-## Decisión
+## Decision
 
-Introducir un nodo **Agent-as-Judge** que puntúa el informe en tres dimensiones (`legal_accuracy`,
-`citation_quality`, `actionability`) y decide `approved`. Dos decisiones clave:
+Introduce an **Agent-as-Judge** node that scores the report on three dimensions (`legal_accuracy`,
+`citation_quality`, `actionability`) and decides `approved`. Two key decisions:
 
-1. **Modelo distinto al analizador:** el analizador usa `claude-haiku-4-5`; el juez usa `gpt-4o`.
-   Un evaluador independiente reduce el sesgo de evaluar el propio razonamiento. (Nota: si se revisa
-   esta elección de modelo, las IDs de generación actual son `claude-sonnet-5` / `claude-opus-5` —
-   informativo, no una recomendación de cambio.)
-2. **Salida estructurada** (`JudgeScores`, ver [ADR-0008](ADR-0008-salida-estructurada-pydantic.md))
-   y bucle de reintento **acotado** (máx. 3): si no aprueba, reintenta el análisis; al agotar los
-   intentos, **no se fuerza el paso** sino que se escala a revisión humana
-   ([ADR-0011](ADR-0011-human-in-the-loop-interrupt.md)).
+1. **A different model from the analyzer:** the analyzer uses `claude-haiku-4-5`; the judge uses `gpt-4o`. An
+   independent evaluator reduces the bias of evaluating one's own reasoning. (Note: if this model choice is revisited,
+   the current generation IDs are `claude-sonnet-5` / `claude-opus-5`, for information only, not a recommendation to
+   change.)
+2. **Structured output** (`JudgeScores`, see [ADR-0008](ADR-0008-structured-output-pydantic.md)) and a **bounded**
+   retry loop (max. 3): if it does not approve, the analysis is retried; when attempts are exhausted, the step is
+   **not forced** but escalated to human review ([ADR-0011](ADR-0011-human-in-the-loop-interrupt.md)).
 
-Los scores del juez se registran como métricas en LangFuse por traza (observabilidad y seguimiento
-por versión de prompt).
+The judge's scores are recorded as metrics in LangFuse per trace (observability and tracking per prompt version).
 
-## Consecuencias
+## Consequences
 
-**Positivas**
-- Control de calidad objetivo antes de emitir; menos informes pobres en producción.
-- Modelo independiente → evaluación menos sesgada que un self-check.
-- Los scores alimentan el dashboard y permiten detectar regresiones por versión de prompt.
+**Positive**
+- Objective quality control before issuing; fewer poor reports in production.
+- An independent model → evaluation less biased than a self-check.
+- The scores feed the dashboard and make it possible to detect regressions per prompt version.
 
-**Negativas / trade-offs**
-- Coste y latencia de una segunda llamada LLM por análisis (y por reintento).
-- Dependencia de un segundo proveedor (OpenAI) además de Anthropic.
+**Negative / trade-offs**
+- Cost and latency of a second LLM call per analysis (and per retry).
+- Dependency on a second provider (OpenAI) in addition to Anthropic.
 
-## Alternativas consideradas
+## Alternatives considered
 
-- **Sin juez (confiar en el analizador):** descartado; sin control de calidad automático.
-- **Self-evaluation con el mismo modelo:** descartado por sesgo de auto-complacencia.
-- **Solo evals offline (sin juez en runtime):** los evals (ADR-0009) protegen el *prompt*, pero no
-  evalúan *cada informe concreto*; el juez en runtime es complementario, no sustituible.
+- **No judge (trust the analyzer):** rejected; no automatic quality control.
+- **Self-evaluation with the same model:** rejected because of self-complacency bias.
+- **Offline evals only (no judge at runtime):** the evals (ADR-0009) protect the *prompt*, but do not evaluate
+  *each concrete report*; the runtime judge is complementary, not a substitute.
 
-## Referencias
+## References
 
-- Código: `graph/nodes/agent_judge.py`.
-- Curso: Block 7 (LLM-as-a-Judge), Block 9 (multi-provider).
+- Code: `graph/nodes/agent_judge.py`.
+- Course: Block 7 (LLM-as-a-Judge), Block 9 (multi-provider).

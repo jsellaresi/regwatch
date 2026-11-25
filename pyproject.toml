@@ -30,14 +30,14 @@ dependencies = [
     "requests",
 ]
 
-# Dependencias de desarrollo (uv las instala con `uv sync`, las omite con `uv sync --no-dev`)
+# Development dependencies (installed by `uv sync`, skipped with `uv sync --no-dev`)
 [dependency-groups]
 dev = [
     "pytest",
     "ruff",
 ]
 
-# Comandos de consola opcionales: `uv run regwatch-ingest`, etc.
+# Optional console commands: `uv run regwatch-ingest`, etc.
 [project.scripts]
 regwatch-ingest = "scripts.ingest_regulations:main"
 regwatch-register-prompts = "scripts.register_prompts:main"
@@ -46,9 +46,9 @@ regwatch-register-prompts = "scripts.register_prompts:main"
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
-# Layout plano: módulos sueltos en la raíz + paquetes detectados automáticamente.
-# Declarar el build-system hace el proyecto instalable, así `uv sync` lo instala en modo
-# editable y `from graph.nodes import ...` resuelve desde cualquier sitio (tests, scripts, Docker).
+# Flat layout: loose modules at the root + automatically discovered packages.
+# Declaring the build-system makes the project installable, so `uv sync` installs it in
+# editable mode and `from graph.nodes import ...` resolves from anywhere (tests, scripts, Docker).
 [tool.setuptools]
 py-modules = ["config", "retriever", "cache_invalidation", "db", "document_store"]
 

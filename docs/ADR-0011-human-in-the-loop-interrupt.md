@@ -1,59 +1,60 @@
-# ADR-0011: Human-in-the-loop con `interrupt()`
+# ADR-0011: Human-in-the-loop with `interrupt()`
 
-- **Estado:** Aceptada
-- **Fecha:** 2026-06-25
+- **Status:** Accepted
+- **Date:** 2026-06-25
 
-## Contexto
+## Context
 
-El juez ([ADR-0010](ADR-0010-agent-as-judge.md)) puede rechazar un informe repetidamente. La versión
-inicial del diseño resolvía esto con `judge_passed = approved or attempt >= 3`: es decir, tras 3
-intentos **auto-aprobaba** un informe que el evaluador había rechazado tres veces. En un sistema de
-compliance esto es inaceptable: se emitiría un informe de baja calidad y se abrirían tickets JIRA
-sobre conclusiones no fiables, sin que ningún humano lo supiera.
+The judge ([ADR-0010](ADR-0010-agent-as-judge.md)) may repeatedly reject a report. The initial design
+handled this with `judge_passed = approved or attempt >= 3`: that is, after 3 attempts it **auto-approved**
+a report the evaluator had rejected three times. In a compliance system this is unacceptable: a
+low-quality report would be issued and JIRA tickets opened on unreliable conclusions, without any human
+knowing.
 
-Se necesita que, cuando la automatización no alcanza la calidad mínima, **una persona decida** — y
-que el sistema pueda **pausar** esperando esa decisión, potencialmente durante minutos u horas, sin
-mantener un proceso bloqueado en memoria.
+When automation does not reach the minimum quality, **a person must decide**, and the system must be able
+to **pause** while waiting for that decision, potentially for minutes or hours, without keeping a process
+blocked in memory.
 
-## Decisión
+## Decision
 
-Sustituir el force-pass por un nodo `human_review_checkpoint` que usa **`interrupt()`** de LangGraph:
+Replace the force-pass with a `human_review_checkpoint` node that uses LangGraph's **`interrupt()`**:
 
-- Cuando el juez agota los reintentos (o el guardrail de salida agota los suyos), el grafo enruta a
-  `human_review_checkpoint`, que llama a `interrupt({...})` con el informe y los scores.
-- `interrupt()` **detiene el grafo y persiste su estado** vía el checkpointer Postgres
-  ([ADR-0002](ADR-0002-postgres-almacen-unificado.md)). El proceso no queda bloqueado: el run termina
-  y puede reanudarse después.
-- El oficial revisa (en la UI, Phase 11) y la API reanuda con
-  `graph.invoke(Command(resume="approve"|"reject"), config)` sobre el mismo `thread_id`.
-- `approve` → `format_report`; `reject` → reintenta el análisis.
+- When the judge exhausts its retries (or the output guardrail exhausts its own), the graph routes to
+  `human_review_checkpoint`, which calls `interrupt({...})` with the report and the scores.
+- `interrupt()` **stops the graph and persists its state** via the Postgres checkpointer
+  ([ADR-0002](ADR-0002-postgres-unified-store.md)). The process is not blocked: the run ends and can be
+  resumed later.
+- The officer reviews (in the UI) and the API resumes with
+  `graph.invoke(Command(resume="approve"|"reject"), config)` on the same `thread_id`.
+- `approve` → `format_report`; `reject` → retries the analysis.
 
-## Por qué `interrupt()` y no otras formas de "pausa"
+## Why `interrupt()` and not other forms of "pausing"
 
-- **No** se puede usar un simple `input()` o bloquear el hilo: la pausa puede durar horas y debe
-  sobrevivir a reinicios del servidor.
-- `interrupt()` + checkpointer materializa el estado en Postgres, así que la reanudación es
-  *stateless* desde el punto de vista del proceso: cualquier worker puede retomar el `thread_id`.
-- Es la primitiva nativa de LangGraph para HITL; reinventarla con colas/flags sería más frágil.
+- A plain `input()` or blocking the thread is **not** an option: the pause can last hours and must survive
+  server restarts.
+- `interrupt()` + checkpointer materialises the state in Postgres, so resumption is *stateless* from the
+  process's point of view: any worker can pick up the `thread_id`.
+- It is LangGraph's native primitive for HITL; reinventing it with queues/flags would be more fragile.
 
-## Consecuencias
+## Consequences
 
-**Positivas**
-- Ningún informe rechazado por el juez se emite automáticamente; siempre lo valida un humano.
-- La pausa es duradera y resistente a reinicios (estado en Postgres), no un hilo en espera.
-- Reanudación distribuible por `thread_id`; encaja con el streaming SSE de la UI.
+**Positive**
+- No report rejected by the judge is ever issued automatically; a human always validates it.
+- The pause is durable and resistant to restarts (state in Postgres), not a thread waiting around.
+- Resumption can be distributed by `thread_id`; it fits the UI's SSE streaming.
 
-**Negativas / trade-offs**
-- Requiere checkpointer persistente configurado (ya es requisito por ADR-0002).
-- La UI/API debe gestionar el estado "pendiente de revisión" y exponer approve/reject.
+**Negative / trade-offs**
+- Requires a persistent checkpointer to be configured (already a requirement of ADR-0002).
+- The UI/API must manage the "pending review" state and expose approve/reject.
 
-## Alternativas consideradas
+## Alternatives considered
 
-- **Force-pass tras N intentos:** descartado; auto-aprueba informes no fiables (el bug original).
-- **Fallar y abortar el run:** descartado; pierde el trabajo ya hecho y no permite intervención.
-- **Cola externa + flag manual:** descartado; reimplementa peor lo que da `interrupt()` + checkpointer.
+- **Force-pass after N attempts:** rejected; it auto-approves unreliable reports (the original bug).
+- **Fail and abort the run:** rejected; it loses the work already done and does not allow intervention.
+- **External queue + manual flag:** rejected; it reimplements, less well, what `interrupt()` + checkpointer
+  provide.
 
-## Referencias
+## References
 
-- Código: `graph/nodes/human_review.py`, `Command(resume=...)`.
-- Curso: Block 6 (LangGraph HITL, checkpoints), Block 12 (HITL approval nodes).
+- Code: `graph/nodes/human_review.py`, `Command(resume=...)`.
+- Course: Block 6 (LangGraph HITL, checkpoints), Block 12 (HITL approval nodes).
