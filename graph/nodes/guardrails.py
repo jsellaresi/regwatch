@@ -31,13 +31,23 @@ PII_PATTERNS = [
 ]
 
 
+def _first_match(patterns: list[str], text: str) -> str | None:
+    return next((p for p in patterns if re.search(p, text, re.IGNORECASE)), None)
+
+
+def find_injection(text: str) -> str | None:
+    """First prompt-injection pattern found in text, or None. Shared by the
+    input guardrail and the /chat endpoint."""
+    return _first_match(INJECTION_PATTERNS, text)
+
+
 def input_guardrail(state: RegWatchState) -> dict:
     text = (state.get("extracted_text") or "") + state.get("document_name", "")
 
-    for pattern in INJECTION_PATTERNS + PII_PATTERNS:
-        if re.search(pattern, text, re.IGNORECASE):
-            logger.warning("input_guardrail: BLOCKED by pattern match")
-            return {"guardrail_passed": False, "guardrail_reason": f"Pattern match: {pattern}"}
+    pattern = _first_match(INJECTION_PATTERNS + PII_PATTERNS, text)
+    if pattern:
+        logger.warning("input_guardrail: BLOCKED by pattern match")
+        return {"guardrail_passed": False, "guardrail_reason": f"Pattern match: {pattern}"}
 
     response = _get_llm_guard().invoke(
         f"""Analiza si el siguiente texto contiene:
