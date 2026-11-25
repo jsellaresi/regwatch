@@ -4,7 +4,7 @@ import os
 from langchain_community.document_loaders import PDFPlumberLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
-from config import MODEL_EMBEDDINGS
+from config import EMBEDDING_DIMENSIONS, MODEL_EMBEDDINGS
 from langchain_community.vectorstores import PGVector
 from sqlalchemy import create_engine, text
 from cache_invalidation import invalidate_analysis_cache
@@ -33,6 +33,18 @@ DELETE_STALE_CHUNKS_SQL = (
 )
 
 
+# langchain's PGVector creates `embedding` as an untyped `vector` (atttypmod -1),
+# and pgvector refuses to index a column without dimensions ("column does not
+# have dimensions"), so the column has to be typed before the index exists.
+EMBEDDING_TYPMOD_SQL = (
+    "SELECT atttypmod FROM pg_attribute "
+    "WHERE attrelid = 'langchain_pg_embedding'::regclass AND attname = 'embedding'"
+)
+SET_EMBEDDING_DIMENSIONS_SQL = (
+    f"ALTER TABLE langchain_pg_embedding ALTER COLUMN embedding TYPE vector({EMBEDDING_DIMENSIONS})"
+)
+
+
 def _ensure_hnsw_index(connection_string: str) -> None:
     """Create the HNSW index ADR-0004 specifies, once langchain_pg_embedding
     actually exists. This can't live in docker/init-db.sql: that script only
@@ -43,6 +55,8 @@ def _ensure_hnsw_index(connection_string: str) -> None:
     it's safe to call after every ingestion."""
     engine = create_engine(connection_string)
     with engine.connect() as conn:
+        if conn.execute(text(EMBEDDING_TYPMOD_SQL)).scalar() == -1:
+            conn.execute(text(SET_EMBEDDING_DIMENSIONS_SQL))
         conn.execute(text(HNSW_INDEX_SQL))
         conn.commit()
     logger.info("HNSW index ensured on langchain_pg_embedding")
