@@ -1,4 +1,3 @@
-import hashlib
 import logging
 
 from psycopg.types.json import Jsonb
@@ -9,12 +8,8 @@ from db import get_pool
 logger = logging.getLogger(__name__)
 
 
-def _hash(document_bytes: bytes) -> str:
-    return hashlib.sha256(document_bytes).hexdigest()
-
-
 async def check_cache(state: RegWatchState) -> dict:
-    doc_hash = _hash(state["document_bytes"])
+    doc_hash = state["doc_hash"]
     pool = await get_pool()
     async with pool.connection() as conn, conn.cursor() as cur:
         await cur.execute(

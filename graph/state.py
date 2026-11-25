@@ -5,17 +5,16 @@ from langgraph.graph.message import add_messages
 
 class RegWatchState(TypedDict):
     # ── Input ──────────────────────────────────────────────
-    document_bytes: bytes
     document_name: str
     policy_id: str
 
     # ── Caching ────────────────────────────────────────────
+    # sha256 of the uploaded PDF; the bytes live in document_store, not here.
     doc_hash: str
     cache_hit: bool
 
     # ── Fase 1: Extracción multimodal ──────────────────────
     extracted_text: str
-    extracted_images: list[str]
 
     # ── Guardrails ─────────────────────────────────────────
     guardrail_passed: bool

@@ -51,6 +51,7 @@ PDF Upload → check_cache → multimodal_extract → input_guardrail
 regwatch/
 ├── config.py                    # env vars, LangFuse client, LLM cache
 ├── retriever.py                 # hybrid pgvector + BM25 singleton
+├── document_store.py            # transient in-memory PDF bytes keyed by sha256
 │
 ├── graph/
 │   ├── state.py                 # RegWatchState TypedDict

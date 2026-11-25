@@ -7,6 +7,7 @@ from langchain_core.messages import HumanMessage
 from langfuse import observe
 from config import get_langfuse
 from graph.state import RegWatchState
+import document_store
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +24,11 @@ def _get_llm_vision():
 @observe(name="multimodal_extract")
 def multimodal_extract(state: RegWatchState) -> dict:
     trace_url = get_langfuse().get_trace_url() or ""
-    doc = fitz.open(stream=state["document_bytes"], filetype="pdf")
+    doc = fitz.open(stream=document_store.get(state["doc_hash"]), filetype="pdf")
     logger.info("multimodal_extract: %s — %d pages", state["document_name"], len(doc))
 
     full_text_parts = []
-    image_descriptions = []
+    vision_pages = 0
 
     for page_num, page in enumerate(doc):
         text = page.get_text()
@@ -62,14 +63,13 @@ def multimodal_extract(state: RegWatchState) -> dict:
 
         page_text = f"[Página {page_num + 1} — escaneada]\n{response.content}"
         full_text_parts.append(page_text)
-        image_descriptions.append(img_b64)
+        vision_pages += 1
 
     logger.info(
         "multimodal_extract complete: %d text pages, %d vision pages",
-        len(full_text_parts) - len(image_descriptions), len(image_descriptions),
+        len(full_text_parts) - vision_pages, vision_pages,
     )
     return {
         "extracted_text": "\n\n".join(full_text_parts),
-        "extracted_images": image_descriptions,
         "trace_url": trace_url,
     }

@@ -12,6 +12,7 @@ import config
 from config import MODEL_CHAT
 from graph import get_graph, init_graph
 from api.interrupts import extract_interrupt_payload
+import document_store
 from retriever import refresh_hybrid_retriever
 from scripts.ingest_regulations import ingest_regulation, REGULATIONS
 
@@ -56,11 +57,12 @@ async def analyze_document(file: UploadFile, policy_id: str = Form(...)):
     graph = get_graph()
     document_bytes = await file.read()
     logger.info("analyze: policy_id=%s file=%s size=%d bytes", policy_id, file.filename, len(document_bytes))
+    doc_hash = document_store.put(document_bytes)
     thread_id = f"{policy_id}:{file.filename}"
     config = {"configurable": {"thread_id": thread_id}}
     result = await graph.ainvoke(
         {
-            "document_bytes": document_bytes,
+            "doc_hash": doc_hash,
             "document_name": file.filename,
             "policy_id": policy_id,
             "judge_attempt": 0,
@@ -87,13 +89,13 @@ async def analyze_document(file: UploadFile, policy_id: str = Form(...)):
 
 @app.post("/analyze/stream")
 async def analyze_stream(file: UploadFile, policy_id: str = Form(...), thread_id: str = Form(None)):
-    document_bytes = await file.read()
+    doc_hash = document_store.put(await file.read())
     if not thread_id:
         thread_id = f"{policy_id}:{file.filename}"
     logger.info("analyze/stream: policy_id=%s file=%s thread_id=%s", policy_id, file.filename, thread_id)
     config = {"configurable": {"thread_id": thread_id}}
     init = {
-        "document_bytes": document_bytes,
+        "doc_hash": doc_hash,
         "document_name": file.filename,
         "policy_id": policy_id,
         "judge_attempt": 0,
