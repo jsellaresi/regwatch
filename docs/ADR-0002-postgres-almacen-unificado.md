@@ -47,6 +47,5 @@ Usar **PostgreSQL como almacén único** para las cuatro necesidades:
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Stack Tecnológico", `migrations/001_cache.sql`, `002_memory.sql`,
-  "Ensamblaje Final" (checkpointer Postgres).
+- Código: `migrations/001_cache.sql`, `002_memory.sql`.
 - Curso: Block 10 (PostgreSQL + pgvector, unified stack).

@@ -3,8 +3,7 @@
 Guía operativa para **ejecutar** RegWatch en local, **cargar PDFs** (corpus regulatorio y documentos
 a analizar) y **probar todos los caminos** que ofrece el producto.
 
-Referencias: diseño completo en [`../use_case_regwatch.md`](../use_case_regwatch.md) · decisiones en
-[`docs/`](docs/README.md).
+Referencias: decisiones de arquitectura en [`docs/`](README.md).
 
 ---
 
@@ -20,7 +19,7 @@ Referencias: diseño completo en [`../use_case_regwatch.md`](../use_case_regwatc
   - `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST` — observabilidad y prompts (obligatorias).
   - `COHERE_API_KEY` — reranking (opcional; sin ella se usa el reranker local BGE).
   - `JIRA_API_TOKEN` — creación de tickets (opcional para pruebas; ver “modo sin JIRA” abajo).
-- Los 5 PDFs regulatorios ya están en [`data/`](data/) (GDPR, MiFID II, 4/5/6 AMLD).
+- Los 5 PDFs regulatorios ya están en [`data/`](../data/) (GDPR, MiFID II, 4/5/6 AMLD).
 
 > **Aviso de datos:** usa únicamente **documentos de prueba sintéticos**. No subas políticas reales
 > con datos de clientes ni datos personales a servicios externos (LLMs, LangFuse Cloud).
@@ -92,7 +91,7 @@ docker compose exec api python -m scripts.ingest_regulations
 ```
 
 Esto trocea por artículo, embebe y hace upsert en pgvector. Tras la ingesta, crea el índice HNSW
-(ver [ADR-0004](docs/ADR-0004-indice-vectorial-hnsw.md)):
+(ver [ADR-0004](ADR-0004-indice-vectorial-hnsw.md)):
 
 ```bash
 docker compose exec db psql -U regwatch -d regwatch -c \
@@ -274,7 +273,7 @@ curl -s -X POST localhost:8000/chat -F "thread_id=p-sse:policy_retencion.pdf" \
 ### 6.1 Eval suite (calidad del análisis — CI gate)
 
 Valida precision/recall y formato de citas contra el dataset golden. Es la barrera que protege la
-promoción de prompts ([ADR-0009](docs/ADR-0009-versionado-prompts-eval-gate.md)).
+promoción de prompts ([ADR-0009](ADR-0009-versionado-prompts-eval-gate.md)).
 
 ```bash
 docker compose exec api pytest evals/eval_suite.py -v
@@ -342,4 +341,4 @@ Antes de dar por bueno un despliegue, verifica:
 | El análisis no encuentra el prompt | Prompt no registrado | `python -m scripts.register_prompts` |
 | SSE no llega entero a la UI | Buffering del proxy | `proxy_buffering off` en `docker/nginx.conf` |
 | `/resume` no reanuda | Checkpointer no persistente o `thread_id` erróneo | Confirma Postgres como checkpointer y el formato `policy_id:fichero` |
-| Cache sirve resultado viejo | No se invalidó tras cambiar prompt/corpus | Vacía `analysis_cache` ([ADR-0006](docs/ADR-0006-caching.md)) |
+| Cache sirve resultado viejo | No se invalidó tras cambiar prompt/corpus | Vacía `analysis_cache` ([ADR-0006](ADR-0006-caching.md)) |

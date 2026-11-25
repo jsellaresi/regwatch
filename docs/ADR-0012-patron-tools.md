@@ -48,6 +48,5 @@ Separar las tools por intención:
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Phase 6 — Tools", `tools/regulation_tools.py`, `graph/nodes/enrich_agent.py`,
-  "Nodos de Salida" (`create_tickets`).
+- Código: `tools/regulation_tools.py`, `graph/nodes/enrich_agent.py`.
 - Curso: Block 4 (LangChain tools), Block 6 (ToolNode + agentic loop).

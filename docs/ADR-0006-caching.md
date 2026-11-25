@@ -50,6 +50,5 @@ El TTL de 7 días es un segundo seguro por si falla la invalidación explícita.
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Phase 1 — Caching y Control de Coste", `graph/nodes/cache.py`,
-  `config.py` (set_llm_cache), `migrations/001_cache.sql`.
+- Código: `graph/nodes/cache.py`, `config.py` (set_llm_cache), `migrations/001_cache.sql`.
 - Curso: Block 10 (response cache con TTL).

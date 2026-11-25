@@ -48,5 +48,5 @@ análisis sin límite puede entrar en bucle infinito y disparar el coste.
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Phase 4 — Guardrails", `graph/nodes/guardrails.py`.
+- Código: `graph/nodes/guardrails.py`.
 - Curso: Block 2 (prompt safety), Block 6 (conditional edges).

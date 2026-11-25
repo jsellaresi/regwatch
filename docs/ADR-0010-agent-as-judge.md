@@ -46,5 +46,5 @@ por versión de prompt).
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Phase 7 — Análisis + Agent as Judge + HITL", `graph/nodes/agent_judge.py`.
+- Código: `graph/nodes/agent_judge.py`.
 - Curso: Block 7 (LLM-as-a-Judge), Block 9 (multi-provider).

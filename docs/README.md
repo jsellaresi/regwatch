@@ -1,7 +1,7 @@
 # Architecture Decision Records — RegWatch
 
 Este directorio registra las **decisiones de arquitectura** (ADRs) del sistema RegWatch, la
-plataforma de análisis de compliance descrita en [`../../use_case_regwatch.md`](../../use_case_regwatch.md).
+plataforma de análisis de compliance.
 
 Cada ADR documenta el *por qué* de una decisión: el contexto, la opción elegida, sus consecuencias
 y las alternativas descartadas. Formato basado en [MADR](https://adr.github.io/madr/).

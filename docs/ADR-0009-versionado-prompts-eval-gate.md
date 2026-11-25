@@ -43,6 +43,5 @@ texto hardcodeado en el código:
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Phase 5 — Few-Shot & Prompt Versioning", "Phase 10 — Evals + CI Gate",
-  `scripts/register_prompts.py`, `scripts/promote_prompt.py`, `.github/workflows/eval_gate.yml`.
+- Código: `scripts/register_prompts.py`, `scripts/promote_prompt.py`, `.github/workflows/eval_gate.yml`.
 - Curso: Block 7 (prompt versioning, evals), Block 18 (CI/CD).

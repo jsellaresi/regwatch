@@ -65,5 +65,5 @@ compleja tras esta corrección, subir `TOP_N` es un ajuste de sintonía pendient
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Phase 3 — RAG", `retriever.py`, `graph/nodes/retrieve_regulations.py`.
+- Código: `retriever.py`, `graph/nodes/retrieve_regulations.py`.
 - Curso: Block 11 (RAG), Block 12 (Advanced RAG: hybrid retrieval).

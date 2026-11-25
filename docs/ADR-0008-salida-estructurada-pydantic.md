@@ -41,6 +41,5 @@ campo `error` en el estado y enruta a un final seguro, en vez de propagar la exc
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Modelos de Salida Estructurada (Pydantic)", `graph/schemas.py`,
-  `graph/nodes/analyze_compliance.py`, `graph/nodes/agent_judge.py`.
+- Código: `graph/schemas.py`, `graph/nodes/analyze_compliance.py`, `graph/nodes/agent_judge.py`.
 - Curso: Block 4 (parsers), Block 7 (evals consistentes).

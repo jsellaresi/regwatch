@@ -55,6 +55,5 @@ Sustituir el force-pass por un nodo `human_review_checkpoint` que usa **`interru
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Phase 7c — Human-in-the-Loop", `graph/nodes/human_review.py`,
-  "Ensamblaje Final" (checkpointer y `Command(resume=...)`), "Phase 11" (UI /resume).
+- Código: `graph/nodes/human_review.py`, `Command(resume=...)`.
 - Curso: Block 6 (LangGraph HITL, checkpoints), Block 12 (HITL approval nodes).

@@ -46,5 +46,5 @@ con el **top-5**. El patrón es: **recuperar k=20 (híbrido) → rerank → top-
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Phase 3c — Reranking" (tabla coste/beneficio), `graph/nodes/rerank.py`.
+- Código: `graph/nodes/rerank.py`.
 - Curso: Block 12 (Advanced RAG: reranking).

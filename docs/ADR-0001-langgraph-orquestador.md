@@ -44,5 +44,5 @@ con `add_edge`, `add_conditional_edges` y un checkpointer para persistencia.
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Ensamblaje Final: El Grafo LangGraph", "Estado Global del Grafo".
+
 - Curso: Block 6 (LangGraph), Block 4 (LangChain/LCEL).

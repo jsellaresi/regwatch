@@ -48,6 +48,5 @@ en la API (`SESSION_BUFFER`), **no** en el estado del grafo, para no contaminar 
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Phase 8 — Memory" (tabla de veredicto), `graph/nodes/memory.py`,
-  `migrations/002_memory.sql`, "Phase 11" (buffer de sesión).
+- Código: `graph/nodes/memory.py`, `migrations/002_memory.sql`.
 - Curso: Block 5 (tipos de memoria), Block 10 (memoria episódica en PostgreSQL).

@@ -77,5 +77,5 @@ El índice compuesto `(policy_id, created_at DESC)` sirve directamente la consul
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Phase 3 — RAG", `migrations/002_memory.sql`, "Phase 1 — Caching".
+- Código: `migrations/002_memory.sql`.
 - Curso: Block 10 (pgvector, IVFFlat vs HNSW, operadores de similitud, schema design).

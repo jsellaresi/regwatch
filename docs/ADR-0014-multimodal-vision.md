@@ -40,5 +40,5 @@ Extracción **híbrida por página** en `multimodal_extract`:
 
 ## Referencias
 
-- `use_case_regwatch.md` → "Phase 2 — Extracción Multimodal", `graph/nodes/multimodal_extract.py`.
+- Código: `graph/nodes/multimodal_extract.py`.
 - Curso: Block 9 (closed source models, multimodal).
