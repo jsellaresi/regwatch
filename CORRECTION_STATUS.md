@@ -22,7 +22,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 | 5 | Create the HNSW index (relocated from plan's `docker/init-db.sql` to `scripts/ingest_regulations.py` — see note below) | ✅ | `tests/test_hnsw_index_sql.py` (4 cases) |
 | 6 | Gate/remove `ensure_prompts()` from startup lifespan | ✅ | `tests/test_no_prompt_registration_on_startup.py` (5 cases) |
 | ➕ | **Adjacent bug fixed:** `pyproject.toml`'s console-script entry `regwatch-register-prompts = "scripts.register_prompts:main"` was broken — the module had no `main()`, only inline code under `if __name__ == "__main__":`. Extracted a `main()`, matching `promote_prompt.py`'s existing pattern. | ✅ | same test file, +1 case |
-| — | `analyze_compliance` exception branch missing `gap_report` key (bundled with #3) | ⬜ | |
+| A (PDF 18) | `analyze_compliance` exception branch left no `gap_report`, so an approved HITL review hit `KeyError` in `format_report` (opaque 500). Now `route_after_human` sends an approved-but-errored run to a new `error_end` node (same pattern as `blocked_end`) that returns `{"status": "error", "error": ...}` and ends — skipping `format_report`, `write_cache`, tickets and memory. Deliberately NOT done via `gap_report: {"gaps": []}`: that would cache a false "completed, 0 gaps" report and mark every previous gap as resolved in episodic memory. | ✅ | `tests/test_error_path_routing.py` (7 cases) |
 
 ## Phase 2 — P1: align code with the "Aceptada" ADRs
 

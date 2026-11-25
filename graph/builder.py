@@ -25,6 +25,10 @@ def create_blocked_end(state: RegWatchState) -> dict:
     return {"final_report": {"error": state["guardrail_reason"], "status": "blocked"}}
 
 
+def create_error_end(state: RegWatchState) -> dict:
+    return {"final_report": {"error": state["error"], "status": "error"}}
+
+
 def cache_hit_end(state: RegWatchState) -> dict:
     return {}
 
@@ -41,6 +45,7 @@ def create_regwatch_graph(checkpointer):
         ("collect_tool_results", collect_tool_results),
         ("analyze_compliance", analyze_compliance), ("output_guardrail", output_guardrail),
         ("agent_judge", agent_judge), ("human_review_checkpoint", human_review_checkpoint),
+        ("error_end", create_error_end),
         ("format_report", format_report), ("write_cache", write_cache),
         ("create_tickets", create_tickets), ("store_episodic_memory", store_episodic_memory),
     ]:
@@ -77,7 +82,9 @@ def create_regwatch_graph(checkpointer):
 
     b.add_conditional_edges("human_review_checkpoint", route_after_human,
                             {"format_report": "format_report",
+                             "error_end": "error_end",
                              "analyze_compliance": "analyze_compliance"})
+    b.add_edge("error_end", END)
 
     b.add_edge("format_report", "write_cache")
     b.add_edge("write_cache", "create_tickets")

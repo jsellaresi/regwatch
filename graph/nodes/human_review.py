@@ -27,4 +27,6 @@ def human_review_checkpoint(state: RegWatchState) -> dict:
 
 
 def route_after_human(state: RegWatchState) -> str:
-    return "format_report" if state["human_decision"] == "approve" else "analyze_compliance"
+    if state["human_decision"] != "approve":
+        return "analyze_compliance"
+    return "error_end" if state.get("error") else "format_report"
