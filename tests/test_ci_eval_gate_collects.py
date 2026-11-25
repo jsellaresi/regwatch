@@ -25,7 +25,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 TIMEOUT_SECONDS = 90  # see test_import_side_effects.py for why 90 and not 30-60:
 # observed flaky under full-suite system load, not in isolation.
 
-# Mirrors the `env:` block in Block 20/.github/workflows/eval_gate.yml.
+# Mirrors the `env:` block in .github/workflows/eval_gate.yml.
 CI_ENV = {
     "ANTHROPIC_API_KEY": "ci-placeholder",
     "OPENAI_API_KEY": "ci-placeholder",
@@ -67,11 +67,7 @@ def test_eval_suite_collection_fails_clearly_when_a_var_is_missing():
     assert "DATABASE_URL" in result.stdout + result.stderr
 
 
-def test_workflow_file_is_at_the_real_repo_root_not_inside_the_subproject():
-    # The other half of finding 4: the workflow must live where GitHub
-    # Actions actually looks — <repo-root>/.github/workflows/ — not inside
-    # the regwatch/ subproject that this repo's real root (Block 20) contains.
-    repo_root = REPO_ROOT.parent
-    assert (repo_root / ".git").exists(), "test assumption: repo root is one level above regwatch/"
-    assert (repo_root / ".github" / "workflows" / "eval_gate.yml").exists()
-    assert not (REPO_ROOT / ".github").exists()
+def test_workflow_file_is_at_the_repo_root():
+    # GitHub Actions only reads <repo-root>/.github/workflows/.
+    assert (REPO_ROOT / ".git").exists(), "test assumption: this directory is the repo root"
+    assert (REPO_ROOT / ".github" / "workflows" / "eval_gate.yml").exists()

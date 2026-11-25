@@ -2,9 +2,12 @@
 
 Automated gap analysis for European financial regulations (GDPR, MiFID II, AML). Upload an internal policy PDF and receive a structured report with detected gaps, exact regulatory references, and JIRA remediation tickets — in minutes.
 
+Capstone project of an AI Engineering program: a production-style agentic system (LangGraph, hybrid RAG, guardrails, agent-as-judge, human-in-the-loop) with every design decision recorded as an ADR. Use only synthetic documents — do not upload real policies or personal data to the external LLM services.
+
 ## Quick Start
 
 ```bash
+git clone https://github.com/jsellaresi/regwatch.git
 cd regwatch
 cp .env.example .env          # fill in ANTHROPIC_API_KEY, OPENAI_API_KEY, LANGFUSE_*, ...
 
@@ -134,6 +137,20 @@ regwatch/
 | `JIRA_ENABLED` | ❌ | Set to `true` to enable JIRA ticket creation (default: `false`) |
 | `JIRA_BASE_URL` | ❌ | Your Atlassian instance URL (e.g. `https://acme.atlassian.net`) |
 | `COHERE_API_KEY` | ❌ | Reranking (falls back to local BGE if absent) |
+
+## Testing
+
+```bash
+uv sync
+uv run pytest tests -q        # unit tests: no env vars, DB or network required
+uv run pytest evals -q        # eval suite against the golden dataset (needs live API keys)
+```
+
+CI runs lint and unit tests on every push (`.github/workflows/health-check.yml`) and gates prompt promotion on the eval suite (`.github/workflows/eval_gate.yml`).
+
+## License
+
+[MIT](LICENSE)
 
 ## Documentation
 
