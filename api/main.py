@@ -3,7 +3,7 @@ import logging
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, UploadFile, Form
+from fastapi import Depends, FastAPI, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 from langgraph.types import Command
@@ -12,6 +12,7 @@ import config
 from config import MODEL_CHAT
 from graph import get_graph, init_graph
 from api.interrupts import extract_interrupt_payload
+from api.security import read_pdf_upload, require_api_key
 import document_store
 from retriever import refresh_hybrid_retriever
 from scripts.ingest_regulations import ingest_regulation, REGULATIONS
@@ -26,6 +27,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     config.validate_required()
+    if not config.API_KEY:
+        raise RuntimeError("Falta REGWATCH_API_KEY: la API no arranca sin autenticación (revisa tu .env)")
     config.init_llm_cache()
     # Prompt registration/promotion is owned by the eval-gate CI pipeline
     # (ADR-0009) — registering here on every restart used to create a new
@@ -39,7 +42,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="RegWatch API", lifespan=lifespan)
+app = FastAPI(title="RegWatch API", lifespan=lifespan, dependencies=[Depends(require_api_key)])
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,7 +58,7 @@ SESSION_TTL_SECONDS = 60 * 60 * 4  # 4 hours
 @app.post("/analyze")
 async def analyze_document(file: UploadFile, policy_id: str = Form(...)):
     graph = get_graph()
-    document_bytes = await file.read()
+    document_bytes = await read_pdf_upload(file)
     logger.info("analyze: policy_id=%s file=%s size=%d bytes", policy_id, file.filename, len(document_bytes))
     doc_hash = document_store.put(document_bytes)
     thread_id = f"{policy_id}:{file.filename}"
@@ -89,7 +92,7 @@ async def analyze_document(file: UploadFile, policy_id: str = Form(...)):
 
 @app.post("/analyze/stream")
 async def analyze_stream(file: UploadFile, policy_id: str = Form(...), thread_id: str = Form(None)):
-    doc_hash = document_store.put(await file.read())
+    doc_hash = document_store.put(await read_pdf_upload(file))
     if not thread_id:
         thread_id = f"{policy_id}:{file.filename}"
     logger.info("analyze/stream: policy_id=%s file=%s thread_id=%s", policy_id, file.filename, thread_id)

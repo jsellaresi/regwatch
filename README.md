@@ -134,6 +134,8 @@ regwatch/
 | `LANGFUSE_SECRET_KEY` | ✅ | Observability |
 | `LANGFUSE_HOST` | ✅ | LangFuse endpoint (e.g. `https://cloud.langfuse.com`) |
 | `DATABASE_URL` | ✅ | PostgreSQL connection string |
+| `REGWATCH_API_KEY` | ✅ | Key every API request must send in `X-API-Key` (the UI asks for it on load); the API refuses to start without it |
+| `MAX_UPLOAD_MB` | ❌ | Max uploaded PDF size (default `20`); non-PDF uploads are rejected |
 | `JIRA_API_TOKEN` | ❌ | Ticket creation token (required if `JIRA_ENABLED=true`) |
 | `JIRA_ENABLED` | ❌ | Set to `true` to enable JIRA ticket creation (default: `false`) |
 | `JIRA_BASE_URL` | ❌ | Your Atlassian instance URL (e.g. `https://acme.atlassian.net`) |

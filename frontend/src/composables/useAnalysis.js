@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { apiFetch } from './apiFetch'
 
 export const NODE_LABELS = {
   check_cache: 'Cache',
@@ -47,7 +48,7 @@ export function useAnalysis() {
   }
 
   async function _fetchState(tid) {
-    try { return await (await fetch(`/state/${encodeURIComponent(tid)}`)).json() } catch { return null }
+    try { return await (await apiFetch(`/state/${encodeURIComponent(tid)}`)).json() } catch { return null }
   }
 
   function cancel() {
@@ -80,7 +81,7 @@ export function useAnalysis() {
     _abort = new AbortController()
     let reader
     try {
-      const resp = await fetch('/analyze/stream', { method: 'POST', body: form, signal: _abort.signal })
+      const resp = await apiFetch('/analyze/stream', { method: 'POST', body: form, signal: _abort.signal })
       reader = resp.body.getReader()
     } catch (e) {
       if (e.name !== 'AbortError') console.error('analyze fetch error', e)
@@ -126,7 +127,7 @@ export function useAnalysis() {
       const form = new FormData()
       form.append('thread_id', threadId.value)
       form.append('decision', decision)
-      const data = await (await fetch('/resume', { method: 'POST', body: form })).json()
+      const data = await (await apiFetch('/resume', { method: 'POST', body: form })).json()
       if (data.status === 'done') {
         report.value = data.final_report
         // resume returns JSON, not a stream — mark post-HITL steps done manually
@@ -181,7 +182,7 @@ export function useAnalysis() {
     const form = new FormData()
     form.append('thread_id', threadId.value)
     form.append('question', question)
-    const { answer } = await (await fetch('/chat', { method: 'POST', body: form })).json()
+    const { answer } = await (await apiFetch('/chat', { method: 'POST', body: form })).json()
     chatHistory.value.push({ role: 'assistant', text: answer })
     chatLoading.value = false
   }

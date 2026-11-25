@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useAnalysis, NODE_LABELS } from '../composables/useAnalysis'
+import { apiKey } from '../composables/apiFetch'
+import ApiKeyForm   from './ApiKeyForm.vue'
 import UploadForm    from './UploadForm.vue'
 import IngestSection from './IngestSection.vue'
 import PipelineRail  from './PipelineRail.vue'
@@ -77,6 +79,7 @@ onUnmounted(() => { if (running.value) cancel() })
         </div>
       </header>
 
+      <ApiKeyForm    v-if="!apiKey" />
       <UploadForm    :running="running" @submit="(f, pid) => analyze(f, pid)" />
       <IngestSection />
       <PipelineRail  :pipeline="PIPELINE" :completed-nodes="completedNodes" :running="running" />

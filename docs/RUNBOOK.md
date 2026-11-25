@@ -116,8 +116,12 @@ y observa cómo se iluminan los nodos en vivo.
 
 **Por la API (curl):**
 
+Todos los endpoints exigen la cabecera `X-API-Key` (valor de `REGWATCH_API_KEY` en `.env`). **Todos los `curl` de este documento deben llevar `-H "X-API-Key: $REGWATCH_API_KEY"`**; sin ella la API responde 401. Solo se aceptan PDFs de hasta `MAX_UPLOAD_MB` (20 por defecto): otro tipo → 415, demasiado grande → 413.
+
 ```bash
+export REGWATCH_API_KEY=...   # el mismo valor que en .env
 curl -X POST http://localhost:8000/analyze \
+  -H "X-API-Key: $REGWATCH_API_KEY" \
   -F "file=@./fixtures/policy_retencion.pdf" \
   -F "policy_id=policy-001"
 ```

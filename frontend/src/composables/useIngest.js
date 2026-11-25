@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { apiFetch } from './apiFetch'
 
 export function useIngest() {
   const ingesting = ref(false)
@@ -19,7 +20,7 @@ export function useIngest() {
     ingestDone.value = false
 
     try {
-      const resp = await fetch('/ingest', { method: 'POST' })
+      const resp = await apiFetch('/ingest', { method: 'POST' })
       if (!resp.ok) {
         ingestLog.value.push({ regulation: '—', status: 'error', detail: `Error del servidor (${resp.status})` })
         ingesting.value = false

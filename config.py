@@ -37,6 +37,7 @@ JIRA_BASE_URL      = os.getenv("JIRA_BASE_URL", "https://your-org.atlassian.net"
 JIRA_PROJECT_KEY   = os.getenv("JIRA_PROJECT_KEY", "COMPL")
 EURLEX_BASE_URL    = "https://eur-lex.europa.eu/rest"
 TAVILY_API_KEY     = os.getenv("TAVILY_API_KEY", "")
+API_KEY            = os.getenv("REGWATCH_API_KEY", "")
 
 # ── Model names ──────────────────────────────────────────────────────────────
 MODEL_ANALYZER      = "claude-haiku-4-5"
