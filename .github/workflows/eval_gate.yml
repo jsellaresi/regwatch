@@ -1,0 +1,40 @@
+name: Eval Gate — Prompt Promotion
+
+on:
+  push:
+    paths:
+      - 'scripts/register_prompts.py'
+      - 'scripts/promote_prompt.py'
+      - 'evals/**'
+  workflow_dispatch: {}
+
+jobs:
+  eval-gate:
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # config.validate_required() only checks these are *present*, not
+      # reachable. Nothing on the current evals/eval_suite.py path touches
+      # Postgres (it calls the LLM directly, bypassing retrieval/rerank/the
+      # LLM cache — see finding 22), so a placeholder is correct today. If
+      # evals are later extended to exercise caching or the full graph, this
+      # needs to become a real `services: postgres` connection string.
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci_placeholder_unused"
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run eval suite against staging prompt
+        run: uv run pytest evals/eval_suite.py -v --tb=short
+
+      - name: Promote prompt to production
+        if: success() && github.event_name == 'push'
+        run: uv run python scripts/promote_prompt.py --from staging --to production

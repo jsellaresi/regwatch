@@ -5,7 +5,7 @@ Automated gap analysis for European financial regulations (GDPR, MiFID II, AML).
 ## Quick Start
 
 ```bash
-cd "Block 20/regwatch"
+cd regwatch
 cp .env.example .env          # fill in ANTHROPIC_API_KEY, OPENAI_API_KEY, LANGFUSE_*, ...
 
 docker compose up -d --build
@@ -21,7 +21,7 @@ docker compose exec api python -m scripts.register_prompts
 | API (Swagger) | http://localhost:8000/docs |
 | PostgreSQL | localhost:5432 (`regwatch` / `regwatch`) |
 
-For full setup instructions, local development without Docker, and how to test all pipeline paths → **[RUNBOOK.md](../RUNBOOK.md)**
+For full setup instructions, local development without Docker, and how to test all pipeline paths → **[RUNBOOK.md](docs/RUNBOOK.md)**
 
 ---
 
@@ -138,7 +138,7 @@ regwatch/
 ## Documentation
 
 - **[docs/GETTING-STARTED.md](docs/GETTING-STARTED.md)** — setup, first run, how to use the UI (start here)
-- **[RUNBOOK.md](../RUNBOOK.md)** — exhaustive testing paths, fixtures, curl examples
+- **[RUNBOOK.md](docs/RUNBOOK.md)** — exhaustive testing paths, fixtures, curl examples
 - **[docs/](docs/README.md)** — 14 Architecture Decision Records (the *why* behind each design choice)
 
 | ADR | Decision |

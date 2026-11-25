@@ -1,6 +1,6 @@
 # Primeros pasos — RegWatch
 
-Guía práctica para **configurar y utilizar** RegWatch. Para el *porqué* arquitectónico de cada decisión, consulta el [índice de ADR](README.md). Para rutas de prueba exhaustivas, consulta el [RUNBOOK.md](../../RUNBOOK.md).
+Guía práctica para **configurar y utilizar** RegWatch. Para el *porqué* arquitectónico de cada decisión, consulta el [índice de ADR](README.md). Para rutas de prueba exhaustivas, consulta el [RUNBOOK.md](RUNBOOK.md).
 
 ---
 
