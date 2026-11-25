@@ -71,3 +71,13 @@ def test_workflow_file_is_at_the_repo_root():
     # GitHub Actions only reads <repo-root>/.github/workflows/.
     assert (REPO_ROOT / ".git").exists(), "test assumption: this directory is the repo root"
     assert (REPO_ROOT / ".github" / "workflows" / "eval_gate.yml").exists()
+
+
+def test_eval_gate_push_trigger_is_limited_to_main():
+    # The workflow's last step promotes staging -> production on any `push`
+    # event; without a branch filter a feature-branch push would promote.
+    import yaml
+
+    workflow = yaml.safe_load((REPO_ROOT / ".github" / "workflows" / "eval_gate.yml").read_text(encoding="utf-8"))
+    triggers = workflow.get("on", workflow.get(True))
+    assert triggers["push"]["branches"] == ["main"]

@@ -2,6 +2,7 @@ name: Eval Gate — Prompt Promotion
 
 on:
   push:
+    branches: [main]
     paths:
       - 'scripts/register_prompts.py'
       - 'scripts/promote_prompt.py'

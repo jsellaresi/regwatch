@@ -9,13 +9,10 @@ logger = logging.getLogger(__name__)
 
 def promote_prompt(from_label: str, to_label: str):
     langfuse = get_langfuse()
-    prompt = langfuse.get_prompt("compliance-analyzer", label=from_label)
-    langfuse.create_prompt(
-        name="compliance-analyzer",
-        prompt=prompt.prompt,
-        labels=[to_label],
-        config=prompt.config,
-    )
+    prompt = langfuse.get_prompt("compliance-analyzer", label=from_label, cache_ttl_seconds=0)
+    # Relabel the very version that was evaluated; creating a new one would make
+    # production run a version number the gate never saw.
+    langfuse.update_prompt(name="compliance-analyzer", version=prompt.version, new_labels=[to_label])
     logger.info("Prompt v%s promovido de '%s' a '%s'", prompt.version, from_label, to_label)
 
     # ADR-0006: only "production" is what analyze_compliance actually reads —
