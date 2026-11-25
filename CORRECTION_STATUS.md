@@ -44,7 +44,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · ➕ discovered mid-fi
 |---|-----|--------|-------------|
 | 16 | Async-pool `cache.py`/`memory.py` instead of raw `psycopg2.connect` | ✅ *(wiring verified; not exercised against a live Postgres — see note below)* | `tests/test_async_db_pool.py` (7 cases) |
 | 17 | `pre_delete_collection=True` on re-ingest | ⬜ | |
-| 18 | Refresh BM25 after `/ingest` | ⬜ | *`retriever.refresh_hybrid_retriever()` already added as a side effect of the infra fix — not yet wired to the `/ingest` endpoint* |
+| 18 (B, PDF 14) | Refresh BM25 after `/ingest` — `api/main.py` now calls `retriever.refresh_hybrid_retriever()` after the ingest loop, before the `done` event, so the next analysis rebuilds BM25 from the new chunks. Limitation: only covers ingestion through the API; `docker compose exec api python -m scripts.ingest_regulations` runs in a separate process and still needs an API restart. | ✅ | `tests/test_ingest_refreshes_retriever.py` (2 cases) |
 | 19 | Stop checkpointing `document_bytes`/`extracted_images` in graph state | ⬜ | |
 | 20 | API authentication | ⬜ | |
 | 21 | Validate upload type/size before `fitz.open` | ⬜ | |

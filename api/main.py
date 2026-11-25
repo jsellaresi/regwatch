@@ -12,6 +12,7 @@ import config
 from config import MODEL_CHAT
 from graph import get_graph, init_graph
 from api.interrupts import extract_interrupt_payload
+from retriever import refresh_hybrid_retriever
 from scripts.ingest_regulations import ingest_regulation, REGULATIONS
 
 logging.basicConfig(
@@ -183,6 +184,7 @@ async def ingest():
             except Exception as exc:
                 logger.exception("ingest: failed %s", name)
                 yield {"event": "progress", "data": json.dumps({"regulation": name, "status": "error", "detail": str(exc)})}
+        refresh_hybrid_retriever()
         yield {"event": "done", "data": json.dumps({"message": "Ingesta completada", "total": len(REGULATIONS)})}
     return EventSourceResponse(event_gen(), ping=15)
 
