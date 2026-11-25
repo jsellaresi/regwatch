@@ -1,5 +1,7 @@
 import logging
 
+from langfuse.api import NotFoundError
+
 from config import get_langfuse
 
 logger = logging.getLogger(__name__)
@@ -89,16 +91,30 @@ Analiza el documento de política interna proporcionado e identifica los gaps re
 """
 
 
+PROMPT_NAME = "compliance-analyzer"
+
+
+def _production_exists(langfuse) -> bool:
+    try:
+        langfuse.get_prompt(PROMPT_NAME, label="production", cache_ttl_seconds=0)
+        return True
+    except NotFoundError:
+        return False
+
+
 def ensure_prompts() -> None:
-    # Siempre crea nueva versión al ejecutar directamente; el arranque del API
-    # puede llamar a esta función sabiendo que LangFuse versiona automáticamente.
-    get_langfuse().create_prompt(
-        name="compliance-analyzer",
+    """Register a new version as staging. Only a brand-new environment (no
+    production version yet) also gets the production label, so the app can run;
+    after that production moves only through promote_prompt, after the eval gate."""
+    langfuse = get_langfuse()
+    labels = ["staging"] if _production_exists(langfuse) else ["staging", "production"]
+    langfuse.create_prompt(
+        name=PROMPT_NAME,
         prompt=SYSTEM_PROMPT_V2,
-        labels=["staging", "production"],
+        labels=labels,
         config={"temperature": 0.1},
     )
-    logger.info("Prompt compliance-analyzer registrado con labels staging + production")
+    logger.info("Prompt %s registrado con labels %s", PROMPT_NAME, labels)
 
 
 def main() -> None:
