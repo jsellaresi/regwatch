@@ -43,6 +43,8 @@ PDF Upload → check_cache → multimodal_extract → input_guardrail
                                                format_report → write_cache → create_tickets → store_episodic_memory
 ```
 
+Every run passes through human review: the judge only decides whether the analysis is retried first.
+
 **LangGraph** orchestrates the pipeline. **LangFuse** traces every node. **Vue 3** streams live node progress via SSE.
 
 ## Project Structure

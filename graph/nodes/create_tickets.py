@@ -11,6 +11,12 @@ logger = logging.getLogger(__name__)
 PRIORITY = {"HIGH": "High", "MEDIUM": "Medium", "LOW": "Low"}
 
 
+def extract_ticket_key(result: str) -> str | None:
+    """JIRA key from create_jira_ticket's result string, or None if it was an error."""
+    prefix = "Ticket creado: "
+    return result.removeprefix(prefix).strip() if result.startswith(prefix) else None
+
+
 def select_eligible_gaps(gaps: list[dict], memory_diff: dict) -> list[dict]:
     """HIGH/MEDIUM gaps that are genuinely new since this policy's last
     analysis (memory_diff["new"], computed in format_report.py via
@@ -38,9 +44,10 @@ def create_tickets(state: RegWatchState) -> dict:
             "description": gap["remediation"],
             "priority": PRIORITY[gap["risk_level"]],
         })
-        if result.startswith("Error"):
-            logger.error("create_tickets: JIRA error for [%s]", gap["regulation_ref"])
+        ticket_key = extract_ticket_key(result)
+        if ticket_key is None:
+            logger.error("create_tickets: JIRA error for [%s]: %s", gap["regulation_ref"], result)
         else:
-            logger.info("create_tickets: %s for [%s]", result, gap["regulation_ref"])
-        ticket_ids.append(result)
+            logger.info("create_tickets: %s for [%s]", ticket_key, gap["regulation_ref"])
+            ticket_ids.append(ticket_key)
     return {"jira_ticket_ids": ticket_ids}
