@@ -9,8 +9,15 @@ on:
       - 'evals/**'
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+
 jobs:
   eval-gate:
+    # Spends API credits: only the repo owner's pushes/dispatches, and only with the
+    # secrets of the `evals` environment (restricted to the main branch).
+    if: github.actor == github.repository_owner
+    environment: evals
     runs-on: ubuntu-latest
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
