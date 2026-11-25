@@ -1,8 +1,8 @@
 """Shared cache-invalidation helper (ADR-0006).
 
 The 7-day TTL on analysis_cache is a second safety net, not the primary
-invalidation mechanism — ADR-0006 explicitly calls invalidation "clave para
-corrección en compliance": a cached report can be based on a prompt version
+invalidation mechanism — ADR-0006 explicitly calls invalidation "key for
+correctness in compliance": a cached report can be based on a prompt version
 or regulatory text that no longer applies once a prompt is promoted to
 production or a regulation is re-ingested. Kept as its own tiny,
 dependency-light module (just psycopg2 + config.DATABASE_URL) rather than

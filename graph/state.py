@@ -13,7 +13,7 @@ class RegWatchState(TypedDict):
     doc_hash: str
     cache_hit: bool
 
-    # ── Fase 1: Extracción multimodal ──────────────────────
+    # ── Phase 1: Multimodal extraction ─────────────────────
     extracted_text: str
 
     # ── Guardrails ─────────────────────────────────────────
@@ -26,7 +26,7 @@ class RegWatchState(TypedDict):
     tool_results: list[dict]
     messages: Annotated[list[AnyMessage], add_messages]
 
-    # ── Análisis ───────────────────────────────────────────
+    # ── Analysis ───────────────────────────────────────────
     prompt_version: str
     gap_report: dict
 
@@ -38,7 +38,7 @@ class RegWatchState(TypedDict):
     # ── Human-in-the-Loop ──────────────────────────────────
     human_decision: str
 
-    # ── Memory (episódica) ─────────────────────────────────
+    # ── Memory (episodic) ──────────────────────────────────
     memory_diff: dict
 
     # ── Output ─────────────────────────────────────────────

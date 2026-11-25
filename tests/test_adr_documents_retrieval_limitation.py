@@ -14,20 +14,20 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def _adr_0003_text() -> str:
-    return (REPO_ROOT / "docs" / "ADR-0003-recuperacion-hibrida.md").read_text(encoding="utf-8")
+    return (REPO_ROOT / "docs" / "ADR-0003-hybrid-retrieval.md").read_text(encoding="utf-8")
 
 
 def test_adr_0003_no_longer_describes_this_as_deferred():
     text = _adr_0003_text()
-    assert "no implementada" not in text.lower()
+    assert "not implemented" not in text.lower()
     assert "(deferred)" not in text.lower()
 
 
 def test_adr_0003_documents_the_implemented_decomposition_approach():
     text = _adr_0003_text()
-    assert "descomposición de query" in text.lower()
+    assert "query decomposition" in text.lower()
     assert "RecursiveCharacterTextSplitter" in text
-    assert "implementada" in text.lower()
+    assert "implemented" in text.lower()
 
 
 def test_adr_0003_mentions_the_real_module_it_describes():

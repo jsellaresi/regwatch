@@ -1,188 +1,193 @@
-# Primeros pasos — RegWatch
+# Getting started — RegWatch
 
-Guía práctica para **configurar y utilizar** RegWatch. Para el *porqué* arquitectónico de cada decisión, consulta el [índice de ADR](README.md). Para rutas de prueba exhaustivas, consulta el [RUNBOOK.md](RUNBOOK.md).
+Practical guide to **configuring and using** RegWatch. For the *why* behind each architectural decision, see the [ADR index](README.md). For exhaustive test paths, see the [RUNBOOK.md](RUNBOOK.md).
 
 ---
 
-## El concepto fundamental (léelo primero)
+## The core concept (read this first)
 
-RegWatch trabaja con **dos tipos de PDF completamente distintos**. Confundirlos es la fuente de confusión número 1:
+RegWatch works with **two completely different types of PDF**. Confusing them is the number 1 source of confusion:
 
-| | Corpus regulatorio | Política de empresa |
+| | Regulatory corpus | Company policy |
 |---|---|---|
-| **Qué es** | Las leyes: GDPR, MiFID II, 4AMLD, 5AMLD, 6AMLD | Tu documento de política interna (retención de datos, KYC, etc.) |
-| **Dónde vive** | Almacenado permanentemente en pgvector | Subido bajo demanda desde la interfaz |
-| **Cuándo cargarlo** | Una vez al configurar, solo si cambian las regulaciones | Cada vez que quieras analizar una política |
-| **Cómo cargarlo** | Botón "Ingestar regulaciones" en la UI (o CLI) | Campo de subida en la interfaz |
+| **What it is** | The laws: GDPR, MiFID II, 4AMLD, 5AMLD, 6AMLD | Your internal policy document (data retention, KYC, etc.) |
+| **Where it lives** | Stored permanently in pgvector | Uploaded on demand from the UI |
+| **When to load it** | Once, at setup, only if the regulations change | Every time you want to analyze a policy |
+| **How to load it** | "Ingestar regulaciones" button in the UI (or CLI) | File upload field in the UI |
 
 ```
-Tu PDF de política interna  ──► Pipeline de RegWatch ──► Informe de brechas
+Your internal policy PDF  ──► RegWatch pipeline ──► Gap report
                                            │
-              GDPR / MiFID II / AML ◄──────┘   (ya en el almacén vectorial)
+              GDPR / MiFID II / AML ◄──────┘   (already in the vector store)
 ```
 
 ---
 
-## 1. Requisitos previos
+## 1. Prerequisites
 
-- **Docker** y **Docker Compose v2** instalados
-- Claves de API — copia `.env.example` a `.env` y rellena los valores:
+- **Docker** and **Docker Compose v2** installed
+- API keys — copy `.env.example` to `.env` and fill in the values:
 
 ```bash
 cp .env.example .env
 ```
 
-| Clave | Obligatoria | Propósito |
+| Key | Required | Purpose |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | ✅ | LLM de análisis (Claude) + Visión para PDFs escaneados |
-| `OPENAI_API_KEY` | ✅ | Embeddings (`text-embedding-3-small`) + Juez (GPT-4o) |
-| `LANGFUSE_PUBLIC_KEY` | ✅ | Trazas de observabilidad |
-| `LANGFUSE_SECRET_KEY` | ✅ | Trazas de observabilidad |
-| `LANGFUSE_HOST` | ✅ | p. ej. `https://cloud.langfuse.com` |
-| `JIRA_API_TOKEN` | ❌ | Token de autenticación JIRA (necesario si `JIRA_ENABLED=true`) |
-| `JIRA_ENABLED` | ❌ | Pon `true` para crear tickets en JIRA (por defecto `false`) |
-| `JIRA_BASE_URL` | ❌ | URL base de tu instancia Atlassian (ej. `https://acme.atlassian.net`) |
-| `COHERE_API_KEY` | ❌ | Reranking en la nube (usa modelo local si no está) |
+| `ANTHROPIC_API_KEY` | ✅ | Analysis LLM (Claude) + Vision for scanned PDFs |
+| `OPENAI_API_KEY` | ✅ | Embeddings (`text-embedding-3-small`) + Judge (GPT-4o) |
+| `LANGFUSE_PUBLIC_KEY` | ✅ | Observability traces |
+| `LANGFUSE_SECRET_KEY` | ✅ | Observability traces |
+| `LANGFUSE_HOST` | ✅ | e.g. `https://cloud.langfuse.com` |
+| `JIRA_API_TOKEN` | ❌ | JIRA authentication token (required if `JIRA_ENABLED=true`) |
+| `JIRA_ENABLED` | ❌ | Set to `true` to create JIRA tickets (default `false`) |
+| `JIRA_BASE_URL` | ❌ | Base URL of your Atlassian instance (e.g. `https://acme.atlassian.net`) |
+| `COHERE_API_KEY` | ❌ | Cloud reranking (uses a local model if not set) |
 
 ---
 
-## 2. Arrancar el stack
+## 2. Start the stack
 
 ```bash
 cd regwatch
 docker compose up -d --build
 ```
 
-Se inician tres servicios:
+Three services start:
 
-| Servicio | URL | Propósito |
+| Service | URL | Purpose |
 |---|---|---|
-| Frontend | http://localhost:5173 | La interfaz con la que interactúas |
+| Frontend | http://localhost:5173 | The UI you interact with |
 | API | http://localhost:8000/docs | FastAPI + Swagger |
-| PostgreSQL | localhost:5432 | Almacén vectorial + checkpoints + caché |
+| PostgreSQL | localhost:5432 | Vector store + checkpoints + cache |
 
 ---
 
-## 3. Cargar el corpus regulatorio (una vez)
+## 3. Load the regulatory corpus (once)
 
-Este paso carga los PDFs de regulaciones (`data/`) en el almacén vectorial. Solo necesita hacerse **una vez** — los datos persisten entre reinicios del contenedor en el volumen Docker `pgdata`.
+This step loads the regulation PDFs (`data/`) into the vector store. It only needs to be done **once** — the data persists across container restarts in the `pgdata` Docker volume.
 
-**Opción A — desde la interfaz (recomendado):**
+**Option A — from the UI (recommended):**
 
-Abre http://localhost:5173, encuentra la tarjeta **"BASE DE REGULACIONES"** y haz clic en **"Ingestar regulaciones"**. Una barra de progreso muestra en tiempo real cómo se carga cada regulación.
+Open http://localhost:5173, find the **"BASE DE REGULACIONES"** card (REGULATIONS BASE) and click **"Ingestar regulaciones"** (Ingest regulations). A progress bar shows in real time how each regulation is loaded.
 
-**Opción B — desde la CLI:**
+**Option B — from the CLI:**
 
 ```bash
 docker compose exec api python -m scripts.ingest_regulations
 ```
 
-**Verifica que funcionó:**
+**Verify it worked:**
 
 ```bash
 docker compose exec db psql -U regwatch -d regwatch -c "SELECT count(*) AS chunks FROM langchain_pg_embedding;"
-# Debería devolver > 2000 chunks
+# Should return > 2000 chunks
 ```
 
-**Opcional — crear el índice vectorial HNSW para búsquedas más rápidas:**
+**Optional — create the HNSW vector index for faster searches:**
 
 ```bash
 docker compose exec db psql -U regwatch -d regwatch -c "CREATE INDEX IF NOT EXISTS idx_emb_hnsw ON langchain_pg_embedding USING hnsw (embedding vector_cosine_ops) WITH (m=16, ef_construction=64);"
 ```
 
-> Solo necesitas volver a ejecutar la ingestión si se modifica una regulación o añades nuevas regulaciones a `data/`.
+> You only need to re-run ingestion if a regulation is modified or you add new regulations to `data/`.
 
 ---
 
-## 4. Registrar el prompt de análisis (una vez)
+## 4. Register the analysis prompt (once)
 
 ```bash
 docker compose exec api python -m scripts.register_prompts
 ```
 
-Esto crea el prompt versionado en LangFuse. Al igual que el corpus, solo hace falta hacerlo una vez (la comprobación al arrancar lo omite si ya está registrado).
+This creates the versioned prompt in LangFuse. Like the corpus, it only needs to be done once (the startup check skips it if it is already registered).
 
 ---
 
-## 5. Ejecutar los evals (gate de calidad)
+## 5. Run the evals (quality gate)
 
-Antes de analizar políticas reales, verifica que el prompt registrado supera los umbrales de calidad. Los evals miden precisión y recall contra un dataset golden y validan que las citas tengan el formato correcto.
+Before analyzing real policies, verify that the registered prompt passes the quality thresholds. The evals measure precision and recall against a golden dataset and validate that citations have the correct format.
 
-**Requisito:** el entorno local debe estar configurado con `uv sync` (ver sección anterior) y la DB de Docker debe estar levantada.
+**Requirement:** the local environment must be set up with `uv sync` (see the previous section) and the Docker DB must be running.
 
 ```bash
 uv run pytest evals/eval_suite.py -v
 ```
 
-Umbrales que deben cumplirse (si fallan, el build se considera roto):
+Thresholds that must be met (if they fail, the build is considered broken):
 
-| Test | Umbral |
+| Test | Threshold |
 |---|---|
-| `test_average_precision_above_threshold` | precisión media ≥ 0.85 |
-| `test_average_recall_above_threshold` | recall medio ≥ 0.80 |
-| `test_no_hallucinated_citations` | 0 citas con formato incorrecto |
+| `test_average_precision_above_threshold` | average precision ≥ 0.85 |
+| `test_average_recall_above_threshold` | average recall ≥ 0.80 |
+| `test_no_hallucinated_citations` | 0 citations with incorrect format |
 
-Si los tres tests pasan en verde, el prompt en `staging` es válido para producción. Promuévelo:
+If all three tests pass green, the prompt in `staging` is valid for production. Promote it:
 
 ```bash
 uv run python -m scripts.promote_prompt --from staging --to production
 ```
 
-> Los resultados detallados por caso (inputs, outputs, métricas) se pueden consultar en el dashboard de **LangFuse** (`LANGFUSE_HOST` del `.env`) bajo el proyecto configurado.
+> Detailed per-case results (inputs, outputs, metrics) can be viewed in the **LangFuse** dashboard (`LANGFUSE_HOST` from `.env`) under the configured project.
 
 ---
 
-## 6. Analizar una política
+## 6. Analyze a policy
 
-Ahora el sistema está listo. Para analizar un documento de política interna:
+The system is now ready. To analyze an internal policy document:
 
-1. Abre http://localhost:5173
-2. Introduce un **ID de política** (cualquier identificador, p. ej. `gdpr-retencion-v1`)
-3. **Sube el PDF de política de tu empresa** (no una regulación — tu documento interno)
-4. Haz clic en **Analizar**
+1. Open http://localhost:5173
+2. Enter a **policy ID** (any identifier, e.g. `gdpr-retencion-v1`)
+3. **Upload your company's policy PDF** (not a regulation — your internal document)
+4. Click **Analizar** (Analyze)
 
-Los nodos del pipeline se iluminan en tiempo real mientras avanza el análisis:
+The pipeline nodes light up in real time as the analysis progresses:
 
 ```
 Caché → Extracción → Guardrail entrada → Recuperación → Reranking
      → Herramientas → Análisis → Guardrail salida → Juez → (¿Revisión humana?) → Informe
 ```
 
-El informe final muestra:
-- **Brechas detectadas** con referencias normativas y nivel de riesgo (ALTO / MEDIO / BAJO)
-- **Remediación** sugerida por brecha
-- **Tickets JIRA** (si `JIRA_API_TOKEN` está configurado)
-- **Diff de memoria** — qué se resolvió vs. sigue abierto vs. es nuevo desde el último análisis de la misma política
+UI labels, in order: Caché (Cache), Extracción (Extraction), Guardrail entrada (Input guardrail), Recuperación
+(Retrieval), Reranking, Herramientas (Tools), Análisis (Analysis), Guardrail salida (Output guardrail), Juez (Judge),
+¿Revisión humana? (Human review?), Informe (Report).
+
+The final report shows:
+- **Detected gaps** with regulatory references and risk level (ALTO / MEDIO / BAJO = HIGH / MEDIUM / LOW)
+- **Remediation** suggested per gap
+- **JIRA tickets** (if `JIRA_API_TOKEN` is configured)
+- **Memory diff** — what was resolved vs. still open vs. new since the last analysis of the same policy
 
 ---
 
-## 7. Revisión humana
+## 7. Human review
 
-Si el LLM juez rechaza el informe tras 3 intentos, o el guardrail de salida falla repetidamente, el pipeline se pausa y muestra una alerta **"Revisión humana requerida"** en la interfaz.
+If the LLM judge rejects the report after 3 attempts, or the output guardrail fails repeatedly, the pipeline pauses and
+shows an alert **"Revisión humana requerida"** ("Human review required") in the UI.
 
-- Haz clic en **Aprobar informe** para continuar al informe final
-- Haz clic en **Rechazar** para volver a ejecutar el análisis
-
----
-
-## 8. Chat de seguimiento
-
-Tras generar un informe, aparece un panel de chat. Haz preguntas sobre el informe:
-
-> *"¿Cuál es la brecha de mayor riesgo y por qué?"*
-> *"¿Qué brechas están relacionadas con la retención de datos?"*
-
-El chat tiene contexto del informe completo generado en esa sesión.
+- Click **Aprobar informe** (Approve report) to continue to the final report
+- Click **Rechazar** (Reject) to re-run the analysis
 
 ---
 
-## 9. Detener y reiniciar
+## 8. Follow-up chat
+
+After a report is generated, a chat panel appears. Ask questions about the report:
+
+> *"¿Cuál es la brecha de mayor riesgo y por qué?"* (What is the highest-risk gap and why?)
+> *"¿Qué brechas están relacionadas con la retención de datos?"* (Which gaps are related to data retention?)
+
+The chat has context from the full report generated in that session.
+
+---
+
+## 9. Stopping and restarting
 
 ```bash
-docker compose down          # detiene los contenedores, los datos sobreviven en el volumen pgdata
-docker compose down -v       # detiene y elimina todos los datos (requiere volver a ingestar)
-docker compose up -d         # reinicia sin reconstruir
-docker compose up -d --build # reinicia y reconstruye las imágenes (tras cambios en el código)
+docker compose down          # stops the containers; data survives in the pgdata volume
+docker compose down -v       # stops and deletes all data (requires re-ingesting)
+docker compose up -d         # restarts without rebuilding
+docker compose up -d --build # restarts and rebuilds the images (after code changes)
 ```
 
-> Tras `docker compose up -d` (sin `--build`), el corpus regulatorio y el prompt registrado **ya están ahí** — no es necesario volver a ingestar ni a registrar.
+> After `docker compose up -d` (without `--build`), the regulatory corpus and the registered prompt **are already there** — no need to re-ingest or re-register.

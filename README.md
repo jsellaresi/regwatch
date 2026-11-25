@@ -4,6 +4,8 @@ Automated gap analysis for European financial regulations (GDPR, MiFID II, AML).
 
 Capstone project of an AI Engineering program: a production-style agentic system (LangGraph, hybrid RAG, guardrails, agent-as-judge, human-in-the-loop) with every design decision recorded as an ADR. Use only synthetic documents — do not upload real policies or personal data to the external LLM services.
 
+**Language:** the documentation and code are in English, but the product itself works in Spanish — the regulation corpus (EU texts in Spanish), the analysis prompts, the guardrail and error messages and the UI are Spanish by design.
+
 ## Quick Start
 
 ```bash
@@ -165,17 +167,17 @@ CI runs lint and unit tests on every push (`.github/workflows/health-check.yml`)
 
 | ADR | Decision |
 |---|---|
-| [ADR-0001](docs/ADR-0001-langgraph-orquestador.md) | LangGraph as central orchestrator |
-| [ADR-0002](docs/ADR-0002-postgres-almacen-unificado.md) | PostgreSQL as unified store |
-| [ADR-0003](docs/ADR-0003-recuperacion-hibrida.md) | Hybrid retrieval: pgvector + BM25 + RRF |
-| [ADR-0004](docs/ADR-0004-indice-vectorial-hnsw.md) | HNSW vector index |
-| [ADR-0005](docs/ADR-0005-reranking-cross-encoder.md) | Cross-encoder reranking |
+| [ADR-0001](docs/ADR-0001-langgraph-orchestrator.md) | LangGraph as central orchestrator |
+| [ADR-0002](docs/ADR-0002-postgres-unified-store.md) | PostgreSQL as unified store |
+| [ADR-0003](docs/ADR-0003-hybrid-retrieval.md) | Hybrid retrieval: pgvector + BM25 + RRF |
+| [ADR-0004](docs/ADR-0004-hnsw-vector-index.md) | HNSW vector index |
+| [ADR-0005](docs/ADR-0005-cross-encoder-reranking.md) | Cross-encoder reranking |
 | [ADR-0006](docs/ADR-0006-caching.md) | Caching strategy (result + LLM) |
-| [ADR-0007](docs/ADR-0007-guardrails-dos-capas.md) | Two-layer guardrails with retry cap |
-| [ADR-0008](docs/ADR-0008-salida-estructurada-pydantic.md) | Structured output with Pydantic |
-| [ADR-0009](docs/ADR-0009-versionado-prompts-eval-gate.md) | Prompt versioning + CI eval gate |
+| [ADR-0007](docs/ADR-0007-two-layer-guardrails.md) | Two-layer guardrails with retry cap |
+| [ADR-0008](docs/ADR-0008-structured-output-pydantic.md) | Structured output with Pydantic |
+| [ADR-0009](docs/ADR-0009-prompt-versioning-eval-gate.md) | Prompt versioning + CI eval gate |
 | [ADR-0010](docs/ADR-0010-agent-as-judge.md) | Agent-as-Judge with a different model |
 | [ADR-0011](docs/ADR-0011-human-in-the-loop-interrupt.md) | Human-in-the-loop with `interrupt()` |
-| [ADR-0012](docs/ADR-0012-patron-tools.md) | Tools pattern: gather with LLM, act deterministically |
-| [ADR-0013](docs/ADR-0013-memoria-episodica.md) | Episodic memory only (no conversational) |
+| [ADR-0012](docs/ADR-0012-tools-pattern.md) | Tools pattern: gather with LLM, act deterministically |
+| [ADR-0013](docs/ADR-0013-episodic-memory.md) | Episodic memory only (no conversational) |
 | [ADR-0014](docs/ADR-0014-multimodal-vision.md) | Multimodal extraction with Claude Vision |

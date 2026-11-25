@@ -23,7 +23,7 @@ def _split_into_queries(extracted_text: str) -> list[str]:
     mixing GDPR/MiFID/AML topics across different sections can lose recall
     when compressed into one query — relevant text past the 2000-char mark,
     or in a later section entirely, never gets a chance to retrieve anything
-    (see docs/ADR-0003-recuperacion-hibrida.md).
+    (see docs/ADR-0003-hybrid-retrieval.md).
 
     A document short enough to fit in one query is returned as exactly one
     query — unchanged behavior for short documents.

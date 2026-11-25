@@ -1,8 +1,8 @@
 GOLDEN_CASES = [
     {
         "id": "gdpr-retention-001",
-        # Excerpt enfocado solo en retención indefinida para evitar que el modelo
-        # añada otros artículos GDPR (minimización, base legal, etc.)
+        # Excerpt focused only on indefinite retention, so the model doesn't
+        # add other GDPR articles (minimisation, legal basis, etc.)
         "document_excerpt": (
             "Sección 4.2 — Retención de datos: La empresa conserva todos los registros "
             "de clientes de forma indefinida en sus servidores. No existe política de "
@@ -26,8 +26,8 @@ GOLDEN_CASES = [
     },
     {
         "id": "aml-kyc-001",
-        # 4AMLD Art. 11 establece que la DDC debe aplicarse ANTES o durante
-        # el inicio de la relación de negocio, no 90 días después.
+        # 4AMLD Art. 11 requires customer due diligence to be applied BEFORE or
+        # during the start of the business relationship, not 90 days after.
         "document_excerpt": (
             "Sección 3.1 — Diligencia debida: La verificación de la identidad del cliente "
             "y la recogida de documentación KYC se completarán dentro de los 90 días "

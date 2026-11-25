@@ -5,7 +5,7 @@ blob as the only retrieval query — a policy mixing GDPR/MiFID/AML topics
 across different sections could lose recall before the k=20 candidate set
 was even built, since text past char 2000 (or in a later section) never
 got a chance to retrieve anything. Documented as a known limitation in
-docs/ADR-0003-recuperacion-hibrida.md (fix 14's first pass); this is the
+docs/ADR-0003-hybrid-retrieval.md (fix 14's first pass); this is the
 real fix, superseding that note.
 
 _split_into_queries and _dedup are pure functions — no live retriever, no

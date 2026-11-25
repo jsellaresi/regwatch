@@ -1,44 +1,43 @@
-# ADR-0014: Extracción multimodal con Claude Vision
+# ADR-0014: Multimodal extraction with Claude Vision
 
-- **Estado:** Aceptada
-- **Fecha:** 2026-06-25
+- **Status:** Accepted
+- **Date:** 2026-06-25
 
-## Contexto
+## Context
 
-Las políticas internas llegan como PDF, pero no siempre son PDFs "digitales" con texto
-seleccionable: muchas son **escaneadas** (documentos firmados, páginas con tablas, sellos). Un
-extractor de texto puro (`page.get_text()`) devuelve vacío o basura en esas páginas, y un OCR clásico
-(p. ej. Tesseract) sufre con tablas y maquetaciones complejas, perdiendo estructura clave para el
-análisis de compliance.
+Internal policies arrive as PDFs, but they are not always "digital" PDFs with selectable text: many are
+**scanned** (signed documents, pages with tables, stamps). A pure text extractor (`page.get_text()`) returns
+empty or garbled output on those pages, and classic OCR (e.g. Tesseract) struggles with tables and complex
+layouts, losing structure that is key for compliance analysis.
 
-## Decisión
+## Decision
 
-Extracción **híbrida por página** en `multimodal_extract`:
+**Hybrid per-page** extraction in `multimodal_extract`:
 
-- Si la página tiene texto digital (`page.get_text()` no vacío) → se usa directamente (rápido y gratis).
-- Si está escaneada → se renderiza a imagen (PyMuPDF, 200 dpi) y se envía a **Claude Vision**, que
-  extrae el texto **preservando la estructura de tablas en markdown**.
+- If the page has digital text (`page.get_text()` is not empty) → it is used directly (fast and free).
+- If the page is scanned → it is rendered to an image (PyMuPDF, 200 dpi) and sent to **Claude Vision**,
+  which extracts the text **preserving table structure in markdown**.
 
-## Consecuencias
+## Consequences
 
-**Positivas**
-- Soporta tanto PDFs digitales como escaneados sin un pipeline de OCR aparte.
-- Claude Vision conserva tablas y estructura mejor que un OCR tradicional, lo que mejora el material
-  que recibe el analizador.
-- Coste optimizado: solo las páginas escaneadas pagan una llamada a Vision; las digitales son gratis.
+**Positive**
+- Supports both digital and scanned PDFs without a separate OCR pipeline.
+- Claude Vision preserves tables and structure better than traditional OCR, which improves the material the
+  analyzer receives.
+- Cost-optimized: only scanned pages incur a Vision call; digital pages are free.
 
-**Negativas / trade-offs**
-- Las páginas escaneadas añaden latencia y coste de tokens de visión.
-- A 200 dpi documentos muy degradados pueden perder calidad; ajustable subiendo dpi (más coste).
-- Dependencia del proveedor para la capacidad multimodal.
+**Negative / trade-offs**
+- Scanned pages add latency and vision-token cost.
+- At 200 dpi, heavily degraded documents may lose quality; tunable by raising the dpi (at higher cost).
+- Dependency on the provider for the multimodal capability.
 
-## Alternativas consideradas
+## Alternatives considered
 
-- **Solo `get_text()`:** descartado; falla por completo en PDFs escaneados.
-- **OCR clásico (Tesseract):** descartado; peor con tablas/maquetación y sin comprensión semántica.
-- **Vision en todas las páginas:** descartado; coste innecesario en páginas digitales que ya traen texto.
+- **`get_text()` only:** rejected; it fails completely on scanned PDFs.
+- **Classic OCR (Tesseract):** rejected; worse with tables/layout and without semantic understanding.
+- **Vision on every page:** rejected; unnecessary cost on digital pages that already contain text.
 
-## Referencias
+## References
 
-- Código: `graph/nodes/multimodal_extract.py`.
-- Curso: Block 9 (closed source models, multimodal).
+- Code: `graph/nodes/multimodal_extract.py`.
+- Course: Block 9 (closed source models, multimodal).
