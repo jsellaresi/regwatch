@@ -23,6 +23,15 @@ HNSW_INDEX_SQL = (
     "WITH (m = 16, ef_construction = 64)"
 )
 
+# Scoped to one regulation: all five live in the same "regulations" collection,
+# so PGVector's pre_delete_collection=True would wipe the other four.
+DELETE_STALE_CHUNKS_SQL = (
+    "DELETE FROM langchain_pg_embedding "
+    "WHERE cmetadata->>'celex' = :celex "
+    "AND (custom_id IS NULL OR custom_id <> ALL(:new_ids)) "
+    "AND collection_id IN (SELECT uuid FROM langchain_pg_collection WHERE name = 'regulations')"
+)
+
 
 def _ensure_hnsw_index(connection_string: str) -> None:
     """Create the HNSW index ADR-0004 specifies, once langchain_pg_embedding
@@ -37,6 +46,17 @@ def _ensure_hnsw_index(connection_string: str) -> None:
         conn.execute(text(HNSW_INDEX_SQL))
         conn.commit()
     logger.info("HNSW index ensured on langchain_pg_embedding")
+
+
+def _delete_stale_chunks(connection_string: str, celex: str, new_ids: list[str]) -> int:
+    """Remove this regulation's chunks from previous ingestions, keeping the
+    ones just inserted. Runs after the insert so a failed embedding call
+    leaves the old corpus intact rather than an empty one."""
+    if not new_ids:
+        return 0
+    engine = create_engine(connection_string)
+    with engine.begin() as conn:
+        return conn.execute(text(DELETE_STALE_CHUNKS_SQL), {"celex": celex, "new_ids": new_ids}).rowcount
 
 
 def ingest_regulation(pdf_path: str, regulation_name: str,
@@ -61,12 +81,14 @@ def ingest_regulation(pdf_path: str, regulation_name: str,
         })
 
     embeddings = OpenAIEmbeddings(model=MODEL_EMBEDDINGS)
-    PGVector.from_documents(
-        documents=chunks,
-        embedding=embeddings,
-        collection_name="regulations",
+    store = PGVector(
         connection_string=CONNECTION_STRING,
+        embedding_function=embeddings,
+        collection_name="regulations",
     )
+    new_ids = store.add_documents(chunks)
+    removed = _delete_stale_chunks(CONNECTION_STRING, celex, new_ids)
+    logger.info("Removed %d stale chunks of %s from earlier ingestions", removed, regulation_name)
     _ensure_hnsw_index(CONNECTION_STRING)
     # ADR-0006: a cached report may cite text from this regulation's previous
     # version — clear it rather than risk serving a gap analysis against a
