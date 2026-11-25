@@ -8,11 +8,13 @@ logger = logging.getLogger(__name__)
 
 
 def gap_key(gap: dict) -> str:
-    """Identity key for a gap, used both to diff against episodic memory
-    here and (in create_tickets.py) to decide which gaps are genuinely new
-    since the policy's last analysis. Kept as a single shared function so
-    the two can't independently drift apart."""
-    return f"{gap['regulation_ref']}::{gap['gap_description'][:80]}"
+    """Identity key for a gap: the regulation reference. Used both to diff
+    against episodic memory here and (in create_tickets.py) to decide which
+    gaps are genuinely new since the policy's last analysis. Keyed on the
+    article, not the description, because the LLM rewords descriptions between
+    runs and a description-based key reported the same gap as resolved and new.
+    Trade-off: two distinct gaps on the same article count as one."""
+    return gap["regulation_ref"].strip()
 
 
 def _gap_keys(report: dict) -> set[str]:

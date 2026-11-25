@@ -76,8 +76,7 @@ def create_regwatch_graph(checkpointer):
                              "human_review_checkpoint": "human_review_checkpoint"})
 
     b.add_conditional_edges("agent_judge", route_after_judge,
-                            {"format_report": "format_report",
-                             "analyze_compliance": "analyze_compliance",
+                            {"analyze_compliance": "analyze_compliance",
                              "human_review_checkpoint": "human_review_checkpoint"})
 
     b.add_conditional_edges("human_review_checkpoint", route_after_human,

@@ -182,8 +182,9 @@ export function useAnalysis() {
     const form = new FormData()
     form.append('thread_id', threadId.value)
     form.append('question', question)
-    const { answer } = await (await apiFetch('/chat', { method: 'POST', body: form })).json()
-    chatHistory.value.push({ role: 'assistant', text: answer })
+    const resp = await apiFetch('/chat', { method: 'POST', body: form })
+    const data = await resp.json()
+    chatHistory.value.push({ role: 'assistant', text: resp.ok ? data.answer : (data.detail || 'Error al contestar') })
     chatLoading.value = false
   }
 

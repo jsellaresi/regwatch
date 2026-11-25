@@ -47,6 +47,7 @@ MODEL_GUARDRAIL     = "claude-haiku-4-5"
 MODEL_JUDGE         = "gpt-4o"
 MODEL_CHAT          = "gpt-4o"
 MODEL_EMBEDDINGS    = "text-embedding-3-small"
+EMBEDDING_DIMENSIONS = 1536  # output size of MODEL_EMBEDDINGS; pgvector needs it to build an index
 MODEL_RERANK_LOCAL  = "BAAI/bge-reranker-v2-m3"
 MODEL_RERANK_COHERE = "rerank-multilingual-v3.0"
 

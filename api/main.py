@@ -11,6 +11,7 @@ from langchain_openai import ChatOpenAI
 import config
 from config import MODEL_CHAT
 from graph import get_graph, init_graph
+from api.chat import build_chat_messages, validate_question
 from api.interrupts import extract_interrupt_payload
 from api.security import read_pdf_upload, require_api_key
 import document_store
@@ -197,6 +198,7 @@ async def ingest():
 @app.post("/chat")
 async def chat(thread_id: str = Form(...), question: str = Form(...)):
     logger.info("chat: thread_id=%s", thread_id)
+    question = validate_question(question)
     config = {"configurable": {"thread_id": thread_id}}
     report = (await get_graph().aget_state(config)).values.get("final_report", {})
     now = time.time()
@@ -207,9 +209,7 @@ async def chat(thread_id: str = Form(...), question: str = Form(...)):
     _, history = SESSION_BUFFER.setdefault(thread_id, (now, []))
     SESSION_BUFFER[thread_id] = (now, history)
     llm = ChatOpenAI(model=MODEL_CHAT, temperature=0)
-    prompt = (f"Informe de compliance:\n{json.dumps(report, ensure_ascii=False)}\n\n"
-              f"Historial:\n{history}\n\nPregunta: {question}")
-    answer = llm.invoke(prompt).content
+    answer = llm.invoke(build_chat_messages(report, history, question)).content
     history.append({"role": "user", "text": question})
     history.append({"role": "assistant", "text": answer})
     return {"answer": answer}
