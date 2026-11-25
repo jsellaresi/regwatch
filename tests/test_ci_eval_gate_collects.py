@@ -36,11 +36,11 @@ CI_ENV = {
 _ISOLATED_KEYS = tuple(CI_ENV)
 
 
-def _collect(env_overrides: dict) -> subprocess.CompletedProcess:
+def _collect(env_overrides: dict, target: str = "evals/eval_suite.py") -> subprocess.CompletedProcess:
     env = {k: v for k, v in os.environ.items() if k not in _ISOLATED_KEYS}
     env.update(env_overrides)
     return subprocess.run(
-        [sys.executable, "-m", "pytest", "evals/eval_suite.py", "--collect-only", "-q"],
+        [sys.executable, "-m", "pytest", target, "--collect-only", "-q"],
         cwd=REPO_ROOT,
         env=env,
         capture_output=True,
@@ -112,3 +112,20 @@ def test_eval_gate_spends_credits_only_for_the_owner_on_main_via_the_evals_envir
     job = workflow["jobs"]["eval-gate"]
     assert job["environment"] == "evals"
     assert job["if"] == "github.actor == github.repository_owner"
+
+
+def test_retrieval_suite_collects_with_ci_env_vars():
+    result = _collect(CI_ENV, target="evals/retrieval_suite.py")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "3 tests collected" in result.stdout
+
+
+def test_eval_gate_runs_both_suites_against_a_real_pgvector_database():
+    workflow = _workflow("eval_gate.yml")
+    job = workflow["jobs"]["eval-gate"]
+    assert job["services"]["postgres"]["image"].startswith("pgvector/pgvector")
+    assert "localhost:5432/regwatch" in job["env"]["DATABASE_URL"]
+    assert "placeholder" not in job["env"]["DATABASE_URL"]
+    commands = " ".join(step.get("run", "") for step in job["steps"])
+    assert "evals/eval_suite.py" in commands and "evals/retrieval_suite.py" in commands
+    assert "scripts.ingest_regulations" in commands
