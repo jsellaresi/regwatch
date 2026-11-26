@@ -79,7 +79,9 @@ regwatch/
 │   └── regulation_tools.py      # EUR-Lex, web search, JIRA (@tool)
 │
 ├── api/
-│   └── main.py                  # FastAPI: /analyze, /analyze/stream (SSE), /resume, /chat
+│   ├── main.py                  # FastAPI: /analyze, /analyze/stream (SSE), /resume, /chat, /ingest
+│   ├── security.py              # X-API-Key check + PDF upload validation
+│   └── chat.py                  # /chat question guardrail + delimited prompt
 │
 ├── frontend/
 │   └── src/
@@ -93,14 +95,20 @@ regwatch/
 │
 ├── evals/
 │   ├── golden_dataset.py
-│   └── eval_suite.py            # pytest CI gate (precision/recall thresholds)
+│   ├── eval_suite.py            # staging prompt vs the golden dataset (precision/recall)
+│   ├── retrieval_eval.py        # regulation/article hit rate of retrieval + rerank
+│   └── retrieval_suite.py       # retrieval gate tests (thresholds via env vars)
+│
+├── tests/                       # unit, graph-wiring and live-Postgres tests
+├── .github/workflows/           # health-check (lint + tests) and eval-gate
 │
 ├── observability/
 │   └── tracing.py               # LangFuse span enrichment + score logging
 │
 ├── migrations/
 │   ├── 001_cache.sql            # analysis_cache table
-│   └── 002_memory.sql           # policy_episodes table
+│   ├── 002_memory.sql           # policy_episodes table
+│   └── 003_fix_llm_cache.sql    # drops the old LLM cache table (recreated hashed)
 │
 ├── docker/
 │   ├── init-db.sql              # CREATE EXTENSION vector
@@ -149,16 +157,39 @@ regwatch/
 
 ```bash
 uv sync
-uv run pytest tests -q        # unit tests: no env vars, DB or network required
+uv run pytest tests -q        # no env vars, DB or network required
 uv run pytest evals/eval_suite.py -q       # staging prompt vs the golden dataset (needs live API keys)
 uv run pytest evals/retrieval_suite.py -q  # retrieval + rerank hit rate (needs the corpus ingested, OpenAI key, a reranker)
 ```
 
-CI runs lint and unit tests on every push (`.github/workflows/health-check.yml`) and gates prompt promotion on the eval suite (`.github/workflows/eval_gate.yml`).
+Four layers, from cheapest to most realistic:
+
+| Layer | What it checks | Needs |
+|---|---|---|
+| Unit tests (`tests/`) | Regexes, routing functions, SQL strings, config, security helpers | nothing |
+| Graph wiring (`tests/test_graph_wiring.py`) | The real compiled graph with scripted fakes for LLMs, DB and Langfuse: retries, escalation to human review, blocking, cache short-circuit, PII redaction reaching the prompt | nothing |
+| Live Postgres (`tests/test_live_*.py`) | Re-ingestion, HNSW index and the hybrid retriever against a real pgvector database, with fake embeddings | `REGWATCH_TEST_DATABASE_URL` pointing at a disposable database whose name contains `test` (skipped otherwise; the health-check workflow provides one) |
+| Eval gate (`evals/`) | Analyzer precision/recall and retrieval hit rate with real models | API keys, the ingested corpus |
+
+CI runs lint and the first three layers on every push and pull request (`.github/workflows/health-check.yml`); the eval gate (`.github/workflows/eval_gate.yml`) ingests the corpus into a pgvector service, runs both eval suites and, only if they pass, promotes the staged prompt.
 
 ### CI and secrets
 
 The eval gate calls paid LLM APIs, so it only runs for the repository owner, on `main` or manually, and reads its keys from the `evals` GitHub environment (restricted to `main`). Pull requests from forks never receive secrets, and external contributors' workflows need approval before they run.
+
+## Known limitations
+
+- **Single shared API key.** No per-user identity or rate limiting, and any `thread_id` can be read with the key.
+- **Cache hits.** A cache hit returns the stored report of an earlier run verbatim (its `policy_id` and prompt version included) and skips human review, tickets and memory; the key is the document hash alone.
+- **Gap identity** is the regulation reference, so two distinct gaps on the same article count as one in the episodic memory.
+- **Guardrails** rely on finite pattern lists (Spanish and English injections, DNI/NIE/IBAN/card/SSN) plus an LLM check; paraphrased attacks depend on the LLM check alone. Company tax IDs are not redacted.
+- **Uploads** are limited to PDFs up to `MAX_UPLOAD_MB`; a file with a valid header but a corrupt body fails inside extraction.
+- **Uploaded PDFs live in process memory** (`document_store.py`) between upload and extraction, so an API restart in that window fails that run with an "upload it again" error.
+- **Windows:** `psycopg` async cannot use asyncio's default `ProactorEventLoop`, so the connection pool times out. Run the stack with Docker (Linux) or WSL.
+- **`/chat`** calls the LLM synchronously inside an async handler, which blocks the event loop while it answers.
+- **Retrieval eval thresholds** (`RETRIEVAL_MIN_REGULATION_HIT`, `RETRIEVAL_MIN_ARTICLE_HIT`) are provisional until calibrated against a real run; the golden dataset has only three evaluable cases.
+- **The LLM-dependent paths** (analysis, vision, judge, semantic guardrail, chat) are verified only by the eval gate and by manual runs, not by the key-less test layers.
+- Model IDs in `config.py` are the previous generation of the Claude family.
 
 ## License
 

@@ -39,8 +39,13 @@ ingestion). A `CREATE INDEX` there would fail on a new volume, or, if it were gu
 would never run (init-db.sql does not run again after the first start). The index is created in
 `scripts/ingest_regulations.py::_ensure_hnsw_index()`, with `CREATE INDEX IF NOT
 EXISTS idx_langchain_pg_embedding_hnsw ...` (explicitly named, because Postgres requires a name for
-`IF NOT EXISTS`), invoked right after each `PGVector.from_documents(...)` call. It is idempotent, so running
+`IF NOT EXISTS`), invoked right after each regulation's insert. It is idempotent, so running
 it once per ingested regulation has no relevant cost.
+
+`PGVector` also creates the `embedding` column as an untyped `vector`, and pgvector cannot index a column without
+dimensions (`column does not have dimensions`). `_ensure_hnsw_index()` therefore first types the column
+(`ALTER TABLE ... ALTER COLUMN embedding TYPE vector(1536)`, `EMBEDDING_DIMENSIONS` in `config.py`) when it is still
+untyped. This was found by running the code against a real Postgres: string-level tests of the SQL did not catch it.
 
 **2. Relational indexes (B-tree):**
 

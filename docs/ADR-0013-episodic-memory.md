@@ -35,8 +35,9 @@ For the UI's **follow-up chat** a lightweight **session buffer** is used, but it
 - Clear separation: business memory (episodic, in the graph) vs. chat UX (session, in the API).
 
 **Negative / trade-offs**
-- A gap's identity is approximated by `regulation_ref + truncated description`; large rewording of the same
-  gap could be counted as "new". Sufficient for this case; tunable.
+- A gap's identity is its regulation reference alone (`regulation_ref`), so the LLM rewording a description between
+  runs does not turn a still-open gap into "resolved" plus "new" (which also reopened a duplicate ticket). The
+  trade-off: two distinct gaps on the same article count as one.
 - Requires a stable `policy_id` as the policy's key (provided by the client on upload).
 
 ## Alternatives considered

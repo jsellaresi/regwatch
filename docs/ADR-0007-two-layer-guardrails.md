@@ -21,8 +21,11 @@ and drive up cost.
 
 **Two-layer guardrails:**
 
-- **Input:** layer 1, a *fast-path* regex check (known injection and PII patterns) → if it does not fire, layer 2,
-  a *semantic check* with a cheap LLM (`claude-haiku`). If it blocks, the graph goes to `blocked_end`.
+- **Input:** layer 1, a *fast-path* regex check. Known injection patterns (English and Spanish) block the document.
+  PII (DNI, NIE, Spanish IBAN, card numbers, SSN) is **redacted** (`[DNI]`, `[IBAN]`, ...) instead of blocking the
+  whole analysis, and the redacted text is what every later node sees. Layer 2 is a *semantic check* with a cheap LLM
+  (`claude-haiku`) over the first 6000 characters of the redacted text, the same slice the analyzer reads. If either
+  layer blocks, the graph goes to `blocked_end`.
 - **Output:** validation of the citation format with regex over the `gap_report`.
 
 **Retry cap:** the output guardrail carries an `output_guardrail_attempt` counter. After 2 failed retries, instead of
@@ -37,7 +40,9 @@ retrying further it **escalates to human review** ([ADR-0011](ADR-0011-human-in-
 
 **Negative / trade-offs**
 - The semantic check adds a (cheap) LLM call on the input path.
-- Regex patterns require maintenance as new injection techniques appear.
+- Regex patterns require maintenance as new injection techniques appear; paraphrased or encoded injections rely on
+  the semantic check alone.
+- Company tax IDs (CIF) are not redacted: they are not personal data.
 
 ## Alternatives considered
 
