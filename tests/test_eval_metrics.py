@@ -3,7 +3,34 @@ import inspect
 import pytest
 
 from evals import eval_suite
-from evals.eval_suite import article_level, compute_metrics
+from evals.eval_suite import MIN_PRECISION, MIN_RECALL, article_level, average, compute_metrics, format_results
+
+
+def _result(case_id, precision, recall, expected, predicted):
+    return {"case_id": case_id, "precision": precision, "recall": recall,
+            "expected_refs": expected, "predicted_refs": predicted}
+
+
+RESULTS = [
+    _result("gdpr-dpo-001", 1.0, 1.0, ["GDPR Art. 37(1)"], ["GDPR Art. 37(1)"]),
+    _result("aml-str-001", 0.5, 1.0, ["4AMLD Art. 33(1)"], ["4AMLD Art. 33(1)", "4AMLD Art. 13"]),
+    _result("no-gap-001", 1.0, 1.0, [], []),
+]
+
+
+def test_average_of_a_metric_over_the_cases_and_of_nothing():
+    assert average(RESULTS, "precision") == pytest.approx(2.5 / 3)
+    assert average([], "precision") == 0.0
+
+
+def test_the_results_table_has_one_line_per_case_at_article_level_and_the_averages():
+    lines = format_results(RESULTS).splitlines()
+    assert len(lines) == len(RESULTS) + 2  # header + cases + averages
+    assert "GDPR Art. 37 | GDPR Art. 37" in lines[1]
+    assert "4AMLD Art. 33 | 4AMLD Art. 13, 4AMLD Art. 33" in lines[2]  # the extra citation is visible
+    assert lines[3].rstrip().endswith("- | -")  # a case with no expected gap and no prediction
+    assert f"min {MIN_PRECISION}" in lines[-1] and f"min {MIN_RECALL}" in lines[-1]
+    assert "average precision 0.83" in lines[-1]
 
 
 @pytest.mark.parametrize(

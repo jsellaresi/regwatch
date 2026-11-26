@@ -7,6 +7,9 @@ from evals.golden_dataset import GOLDEN_CASES
 from graph.schemas import GapReport, VALID_CITATION_RE
 from config import get_langfuse
 
+MIN_PRECISION = 0.85
+MIN_RECALL = 0.80
+
 _llm = None
 
 
@@ -62,27 +65,55 @@ def run_single_eval(case: dict) -> dict:
     }
 
 
+def average(results: list[dict], key: str) -> float:
+    return sum(r[key] for r in results) / len(results) if results else 0.0
+
+
+def format_results(results: list[dict]) -> str:
+    """One line per golden case (expected vs predicted, at article level) plus the averages
+    the thresholds apply to, so a failed gate shows which cases the model read differently."""
+
+    def refs(values) -> str:
+        return ", ".join(sorted({article_level(v) for v in values})) or "-"
+
+    lines = [f"{'case':<32}{'prec':>5}{'rec':>6}  expected | predicted"]
+    for r in results:
+        lines.append(
+            f"{r['case_id']:<32}{r['precision']:>5.2f}{r['recall']:>6.2f}  "
+            f"{refs(r['expected_refs'])} | {refs(r['predicted_refs'])}"
+        )
+    lines.append(
+        f"average precision {average(results, 'precision'):.2f} (min {MIN_PRECISION}) | "
+        f"average recall {average(results, 'recall'):.2f} (min {MIN_RECALL})"
+    )
+    return "\n".join(lines)
+
+
 @pytest.fixture(scope="module")
 def results() -> list[dict]:
-    return [run_single_eval(c) for c in GOLDEN_CASES]
+    evaluated = [run_single_eval(c) for c in GOLDEN_CASES]
+    print("\n" + format_results(evaluated))
+    return evaluated
 
 
 class TestPromptPromotion:
 
     def test_average_precision_above_threshold(self, results):
-        avg_precision = sum(r["precision"] for r in results) / len(results)
-        assert avg_precision >= 0.85, (
-            f"Precisión media {avg_precision:.2f} por debajo del umbral 0.85. "
-            "No promover el prompt a producción."
+        avg_precision = average(results, "precision")
+        assert avg_precision >= MIN_PRECISION, (
+            f"Precisión media {avg_precision:.2f} por debajo del umbral {MIN_PRECISION}. "
+            f"No promover el prompt a producción.\n{format_results(results)}"
         )
 
     def test_average_recall_above_threshold(self, results):
-        avg_recall = sum(r["recall"] for r in results) / len(results)
-        assert avg_recall >= 0.80, (
-            f"Recall medio {avg_recall:.2f} por debajo del umbral 0.80."
+        avg_recall = average(results, "recall")
+        assert avg_recall >= MIN_RECALL, (
+            f"Recall medio {avg_recall:.2f} por debajo del umbral {MIN_RECALL}.\n{format_results(results)}"
         )
 
     def test_no_hallucinated_citations(self, results):
         for r in results:
             for ref in r["predicted_refs"]:
-                assert VALID_CITATION_RE.match(ref), f"Cita con formato incorrecto: '{ref}'"
+                assert VALID_CITATION_RE.match(ref), (
+                    f"Cita con formato incorrecto: '{ref}' (caso {r['case_id']})\n{format_results(results)}"
+                )
