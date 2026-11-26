@@ -187,7 +187,7 @@ The eval gate calls paid LLM APIs, so it only runs for the repository owner, on 
 - **Uploaded PDFs live in process memory** (`document_store.py`) between upload and extraction, so an API restart in that window fails that run with an "upload it again" error.
 - **Windows:** `psycopg` async cannot use asyncio's default `ProactorEventLoop`, so the connection pool times out. Run the stack with Docker (Linux) or WSL.
 - **`/chat`** calls the LLM synchronously inside an async handler, which blocks the event loop while it answers.
-- **Retrieval eval thresholds** (`RETRIEVAL_MIN_REGULATION_HIT`, `RETRIEVAL_MIN_ARTICLE_HIT`) are provisional until calibrated against a real run; the golden dataset has only three evaluable cases.
+- **Retrieval eval thresholds** (`RETRIEVAL_MIN_REGULATION_HIT`, `RETRIEVAL_MIN_ARTICLE_HIT`) are provisional until calibrated against a real run; the golden dataset has only three evaluable cases, so each rate moves in steps of 0.33. Article attribution relies on each chunk's `articles` tag (set at ingestion from "Artículo N" headers), so a cross-reference at the start of a line can be tagged with the wrong article.
 - **The LLM-dependent paths** (analysis, vision, judge, semantic guardrail, chat) are verified only by the eval gate and by manual runs, not by the key-less test layers.
 - Model IDs in `config.py` are the previous generation of the Claude family.
 

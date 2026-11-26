@@ -94,3 +94,19 @@ def test_no_evaluable_cases_gives_zero_rates_not_a_crash():
     report = evaluate_retrieval([CASES[2]], retrieve=_retrieve, rerank_fn=_keep_first)
     assert report["rows"] == [] and report["regulation_hit_rate"] == 0.0
     assert "regulation hit rate" in format_report(report)
+
+
+def test_a_continuation_chunk_tagged_with_the_article_counts_as_an_article_hit():
+    # The cited paragraph usually sits in a later chunk of a long article, which has no header.
+    continuation = {"regulation": "GDPR", "content": "e) mantenidos durante no más tiempo", "articles": [5]}
+    assert score_retrieval([continuation], "GDPR Art. 5(1)(e)")["article_hit"] is True
+
+
+def test_a_chunk_tagged_with_another_article_is_not_a_hit():
+    other = {"regulation": "GDPR", "content": "texto", "articles": [6]}
+    assert score_retrieval([other], "GDPR Art. 5(1)(e)")["article_hit"] is False
+
+
+def test_the_articles_tag_does_not_cross_regulations():
+    chunk = {"regulation": "4AMLD", "content": "texto", "articles": [5]}
+    assert score_retrieval([chunk], "GDPR Art. 5(1)(e)") == {"regulation_hit": False, "article_hit": False}
