@@ -5,6 +5,7 @@ unit test and still crashed on a real database ("column does not have dimensions
 """
 import hashlib
 import os
+from pathlib import Path
 
 import psycopg
 import pytest
@@ -90,3 +91,24 @@ def test_hnsw_index_is_created_and_used_for_similarity_search(live_db):
         cur.execute("EXPLAIN SELECT uuid FROM langchain_pg_embedding ORDER BY embedding <=> %s::vector LIMIT 5", (query,))
         plan = "\n".join(row[0] for row in cur.fetchall())
     assert "idx_langchain_pg_embedding_hnsw" in plan
+
+
+def test_cache_invalidation_works_on_the_schema_the_migrations_build(live_db, monkeypatch):
+    # The eval gate once crashed during ingestion because it only enabled pgvector and
+    # never applied the migrations, so `DELETE FROM analysis_cache` hit a missing table.
+    import cache_invalidation
+
+    repo = Path(__file__).resolve().parent.parent
+    scripts = [repo / "docker" / "init-db.sql", *sorted((repo / "migrations").glob("*.sql"))]
+    with psycopg.connect(live_db, autocommit=True) as conn:
+        conn.execute("DROP TABLE IF EXISTS analysis_cache, policy_episodes")
+        for script in scripts:
+            conn.execute(script.read_text(encoding="utf-8"))
+        conn.execute("INSERT INTO analysis_cache (doc_hash, final_report) VALUES ('h', '{}')")
+
+    monkeypatch.setattr(cache_invalidation, "DATABASE_URL", live_db)
+    cache_invalidation.invalidate_analysis_cache(reason="test")
+
+    with psycopg.connect(live_db) as conn, conn.cursor() as cur:
+        cur.execute("SELECT count(*) FROM analysis_cache")
+        assert cur.fetchone()[0] == 0

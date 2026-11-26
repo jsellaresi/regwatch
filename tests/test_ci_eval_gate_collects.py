@@ -139,3 +139,14 @@ def test_register_prompt_workflow_is_manual_owner_only_and_uses_the_evals_enviro
     assert job["if"] == "github.actor == github.repository_owner"
     commands = " ".join(step.get("run", "") for step in job["steps"])
     assert "scripts.register_prompts" in commands
+
+
+def test_eval_gate_applies_every_migration_before_ingesting_the_corpus():
+    # Ingestion invalidates analysis_cache after each regulation; without the
+    # migrations that table does not exist and the ingestion step crashes.
+    steps = _workflow("eval_gate.yml")["jobs"]["eval-gate"]["steps"]
+    runs = [step.get("run", "") for step in steps]
+    migrate = next(i for i, run in enumerate(runs) if "migrations/*.sql" in run)
+    ingest = next(i for i, run in enumerate(runs) if "scripts.ingest_regulations" in run)
+    assert migrate < ingest
+    assert "docker/init-db.sql" in runs[migrate]
