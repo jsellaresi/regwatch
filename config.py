@@ -40,10 +40,10 @@ TAVILY_API_KEY     = os.getenv("TAVILY_API_KEY", "")
 API_KEY            = os.getenv("REGWATCH_API_KEY", "")
 
 # ── Model names ──────────────────────────────────────────────────────────────
-MODEL_ANALYZER      = "claude-haiku-4-5"
-MODEL_ENRICH        = "claude-haiku-4-5"
-MODEL_VISION        = "claude-sonnet-4-6"
-MODEL_GUARDRAIL     = "claude-haiku-4-5"
+MODEL_ANALYZER      = "claude-haiku-5-5"
+MODEL_ENRICH        = "claude-haiku-5-5"
+MODEL_VISION        = "claude-sonnet-5-5"
+MODEL_GUARDRAIL     = "claude-haiku-5-5"
 MODEL_JUDGE         = "gpt-4o"
 MODEL_CHAT          = "gpt-4o"
 MODEL_EMBEDDINGS    = "text-embedding-3-small"
