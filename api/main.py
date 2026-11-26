@@ -52,6 +52,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+_chat_llm = None
+
+
+def _get_chat_llm():
+    """One shared client, built on first use (importing this module needs no API key)."""
+    global _chat_llm
+    if _chat_llm is None:
+        _chat_llm = ChatOpenAI(model=MODEL_CHAT, temperature=0)
+    return _chat_llm
+
+
 SESSION_BUFFER: dict[str, tuple[float, list]] = {}  # thread_id -> (last_access_ts, history)
 SESSION_TTL_SECONDS = 60 * 60 * 4  # 4 hours
 
@@ -208,8 +219,8 @@ async def chat(thread_id: str = Form(...), question: str = Form(...)):
         del SESSION_BUFFER[k]
     _, history = SESSION_BUFFER.setdefault(thread_id, (now, []))
     SESSION_BUFFER[thread_id] = (now, history)
-    llm = ChatOpenAI(model=MODEL_CHAT, temperature=0)
-    answer = llm.invoke(build_chat_messages(report, history, question)).content
+    response = await _get_chat_llm().ainvoke(build_chat_messages(report, history, question))
+    answer = response.content
     history.append({"role": "user", "text": question})
     history.append({"role": "assistant", "text": answer})
     return {"answer": answer}

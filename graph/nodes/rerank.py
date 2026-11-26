@@ -11,7 +11,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-TOP_N = 5
+TOP_N = 8  # keep REG_CONTEXT_CHARS (config.py) large enough for TOP_N chunks
 
 _local_ce = None
 _cohere = None
@@ -40,9 +40,18 @@ def _get_cohere():
     return _cohere
 
 
+def _citable(regs: list[dict]) -> list[dict]:
+    """Drop chunks that belong to no article (recitals, annexes): they cannot ground a
+    "Reg Art. N" citation yet used to take top-N slots from the articles themselves.
+    Chunks without the `articles` tag at all (corpus ingested before tagging) are kept,
+    and so is everything if nothing citable was retrieved."""
+    citable = [r for r in regs if r.get("articles") != []]
+    return citable or regs
+
+
 def rerank(state: RegWatchState) -> dict:
     query = state["extracted_text"][:2000]
-    regs = state["retrieved_regulations"]
+    regs = _citable(state["retrieved_regulations"])
 
     if COHERE_API_KEY:
         docs = [Document(page_content=r["content"], metadata=r) for r in regs]

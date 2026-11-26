@@ -40,10 +40,10 @@ TAVILY_API_KEY     = os.getenv("TAVILY_API_KEY", "")
 API_KEY            = os.getenv("REGWATCH_API_KEY", "")
 
 # ── Model names ──────────────────────────────────────────────────────────────
-MODEL_ANALYZER      = "claude-haiku-4-5"
-MODEL_ENRICH        = "claude-haiku-4-5"
-MODEL_VISION        = "claude-sonnet-4-6"
-MODEL_GUARDRAIL     = "claude-haiku-4-5"
+MODEL_ANALYZER      = "claude-haiku-5-5"
+MODEL_ENRICH        = "claude-haiku-5-5"
+MODEL_VISION        = "claude-sonnet-5-5"
+MODEL_GUARDRAIL     = "claude-haiku-5-5"
 MODEL_JUDGE         = "gpt-4o"
 MODEL_CHAT          = "gpt-4o"
 MODEL_EMBEDDINGS    = "text-embedding-3-small"
@@ -52,6 +52,11 @@ MODEL_RERANK_LOCAL  = "BAAI/bge-reranker-v2-m3"
 MODEL_RERANK_COHERE = "rerank-multilingual-v3.0"
 
 CACHE_TTL_SECONDS  = 60 * 60 * 24 * 7
+
+# Characters of retrieved regulation text the analyzer and the judge both read. The judge
+# must see what the analyzer saw, or it cannot verify the citations. It has to hold the
+# reranker's TOP_N chunks of up to 800 characters each plus their "[regulation]" labels.
+REG_CONTEXT_CHARS  = 6600
 
 _langfuse_client = None
 

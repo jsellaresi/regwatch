@@ -125,9 +125,9 @@ regwatch/
 | Layer | Technology |
 |---|---|
 | Orchestration | LangGraph (StateGraph + PostgreSQL checkpointer + `interrupt()`) |
-| Analysis LLM | `claude-haiku-4-5` |
+| Analysis LLM | `claude-haiku-5-5` |
 | Judge LLM | `gpt-4o` |
-| Vision LLM | `claude-sonnet-4-6` (multimodal, scanned PDFs) |
+| Vision LLM | `claude-sonnet-5-5` (multimodal, scanned PDFs) |
 | Embeddings | `text-embedding-3-small` (OpenAI) |
 | Vector DB | PostgreSQL + pgvector |
 | Keyword search | BM25Retriever (rank_bm25) |

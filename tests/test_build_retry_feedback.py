@@ -3,7 +3,7 @@
 The bug this fixes: analyze_compliance's retry path resent the exact same
 HumanMessage regardless of *why* the previous attempt was rejected by the
 output guardrail or the judge. With the global LLM cache enabled
-(config.init_llm_cache) and temperature=0.1, an unchanged prompt is a cache
+(config.init_llm_cache), an unchanged prompt is a cache
 hit on the same (failing) response — so the retry loop could never actually
 correct anything. build_retry_feedback renders the guardrail/judge feedback
 into a prompt block that changes the input (and therefore the cache key) on

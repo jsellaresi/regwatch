@@ -112,7 +112,6 @@ def ensure_prompts() -> None:
         name=PROMPT_NAME,
         prompt=SYSTEM_PROMPT_V2,
         labels=labels,
-        config={"temperature": 0.1},
     )
     logger.info("Prompt %s registrado con labels %s", PROMPT_NAME, labels)
 
