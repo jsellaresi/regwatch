@@ -110,3 +110,14 @@ def test_a_chunk_tagged_with_another_article_is_not_a_hit():
 def test_the_articles_tag_does_not_cross_regulations():
     chunk = {"regulation": "4AMLD", "content": "texto", "articles": [5]}
     assert score_retrieval([chunk], "GDPR Art. 5(1)(e)") == {"regulation_hit": False, "article_hit": False}
+
+
+def test_long_case_ids_never_run_into_the_next_column():
+    hit = {"regulation_hit": True, "article_hit": True}
+    row = {"case_id": "gdpr-consent-withdrawal-001", "ref": "GDPR Art. 7(3)", "candidates": 37,
+           "final": 8, "before": hit, "after": hit}
+    report = {"rows": [row], "regulation_hit_rate": 1.0, "article_hit_rate": 1.0,
+              "regulation_hit_rate_before_rerank": 1.0, "article_hit_rate_before_rerank": 1.0}
+    header, line = format_report(report).splitlines()[:2]
+    assert "gdpr-consent-withdrawal-001  GDPR Art. 7(3)" in line
+    assert header.index("expected ref") == line.index("GDPR Art. 7(3)")

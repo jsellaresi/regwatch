@@ -78,11 +78,14 @@ def evaluate_retrieval(cases: list[dict], retrieve=retrieve_regulations, rerank_
 
 
 def format_report(report: dict) -> str:
-    lines = [f"{'case':<24}{'expected ref':<22}{'cand.':>6}{'top':>5}  reg(before>after)  art(before>after)"]
+    width = max([len(row["case_id"]) for row in report["rows"]] + [len("case")]) + 2
+    lines = [f"{'case':<{width}}{'expected ref':<22}{'cand.':>6}{'top':>5}  reg(before>after)  art(before>after)"]
     for row in report["rows"]:
         reg = f"{row['before']['regulation_hit']:d}>{row['after']['regulation_hit']:d}"
         art = f"{row['before']['article_hit']:d}>{row['after']['article_hit']:d}"
-        lines.append(f"{row['case_id']:<24}{row['ref']:<22}{row['candidates']:>6}{row['final']:>5}  {reg:<18} {art}")
+        lines.append(
+            f"{row['case_id']:<{width}}{row['ref']:<22}{row['candidates']:>6}{row['final']:>5}  {reg:<18} {art}"
+        )
     lines.append(
         f"regulation hit rate: {report['regulation_hit_rate']:.2f} "
         f"(before rerank {report['regulation_hit_rate_before_rerank']:.2f}) | "
