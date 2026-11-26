@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from langchain_anthropic import ChatAnthropic
 from config import MODEL_ANALYZER
@@ -15,10 +17,19 @@ def _get_llm():
     return _llm
 
 
+def article_level(ref: str) -> str:
+    """'GDPR Art. 5(1)(e)' -> 'GDPR Art. 5'. A citation counts when it names the right
+    article; which paragraph of it is cited is not scored (the retrieval eval is
+    article-level too), so 'Art. 35(1)' and 'Art. 35(3)' are the same hit."""
+    return re.sub(r"(\([0-9a-z]+\))+$", "", ref.strip())
+
+
 def compute_metrics(predicted_refs: set[str], expected_refs: set[str]) -> tuple[float, float]:
-    """Precision and recall for one case. Predicting nothing is only a perfect
-    precision when there was nothing to find; otherwise it scores 0, so a model
-    that returns no gaps can't inflate the average."""
+    """Precision and recall for one case, comparing citations at article level.
+    Predicting nothing is only a perfect precision when there was nothing to find;
+    otherwise it scores 0, so a model that returns no gaps can't inflate the average."""
+    predicted_refs = {article_level(r) for r in predicted_refs}
+    expected_refs = {article_level(r) for r in expected_refs}
     tp = len(predicted_refs & expected_refs)
     fp = len(predicted_refs - expected_refs)
     fn = len(expected_refs - predicted_refs)

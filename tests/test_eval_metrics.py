@@ -3,7 +3,33 @@ import inspect
 import pytest
 
 from evals import eval_suite
-from evals.eval_suite import compute_metrics
+from evals.eval_suite import article_level, compute_metrics
+
+
+@pytest.mark.parametrize(
+    "ref, expected",
+    [
+        ("GDPR Art. 5(1)(e)", "GDPR Art. 5"),
+        ("GDPR Art. 35(3)", "GDPR Art. 35"),
+        ("MiFID II Art. 23", "MiFID II Art. 23"),
+        ("4AMLD Art. 13(1)(b) ", "4AMLD Art. 13"),
+        ("A", "A"),
+    ],
+)
+def test_article_level_drops_the_paragraph_suffix(ref, expected):
+    assert article_level(ref) == expected
+
+
+def test_a_different_paragraph_of_the_right_article_is_a_hit():
+    assert compute_metrics({"GDPR Art. 35(3)"}, {"GDPR Art. 35(1)"}) == (1.0, 1.0)
+
+
+def test_several_paragraphs_of_one_article_count_once():
+    assert compute_metrics({"GDPR Art. 5(1)(e)", "GDPR Art. 5(1)(f)"}, {"GDPR Art. 5(1)(e)"}) == (1.0, 1.0)
+
+
+def test_a_different_article_is_still_a_miss():
+    assert compute_metrics({"GDPR Art. 6(1)"}, {"GDPR Art. 5(1)(e)"}) == (0.0, 0.0)
 
 
 @pytest.mark.parametrize(
