@@ -12,3 +12,6 @@ frontend/dist/
 
 # Local agent instructions
 CLAUDE.md
+
+# Synthetic PDFs from `python -m scripts.make_fixtures`
+/fixtures/
