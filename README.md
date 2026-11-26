@@ -1,8 +1,8 @@
-# RegWatch — Intelligent Compliance Analysis Platform
+# RegWatch — Agentic Compliance Analysis for European Financial Regulations
 
-Automated gap analysis for European financial regulations (GDPR, MiFID II, AML). Upload an internal policy PDF and receive a structured report with detected gaps, exact regulatory references, and JIRA remediation tickets — in minutes.
+Upload an internal policy PDF and get a structured gap report against GDPR, MiFID II and the AML directives: exact article citations, a risk level and a remediation step per gap, and optional JIRA tickets. Built with LangGraph, hybrid RAG (pgvector + BM25, cross-encoder reranking), two-layer guardrails, a cross-model agent-as-judge, human-in-the-loop review and a CI evaluation gate that decides whether a prompt reaches production. Every design decision is recorded as an ADR.
 
-Capstone project of an AI Engineering program: a production-style agentic system (LangGraph, hybrid RAG, guardrails, agent-as-judge, human-in-the-loop) with every design decision recorded as an ADR. Use only synthetic documents — do not upload real policies or personal data to the external LLM services.
+Use only synthetic documents — do not upload real policies or personal data to the external LLM services.
 
 **Language:** the documentation and code are in English, but the product itself works in Spanish — the regulation corpus (EU texts in Spanish), the analysis prompts, the guardrail and error messages and the UI are Spanish by design.
 
@@ -177,6 +177,8 @@ CI runs lint and the first three layers on every push and pull request (`.github
 
 The eval gate calls paid LLM APIs, so it only runs for the repository owner, on `main` or manually, and reads its keys from the `evals` GitHub environment (restricted to `main`). Pull requests from forks never receive secrets, and external contributors' workflows need approval before they run.
 
+The manual, owner-only `Register Prompt (staging)` workflow uses the same `evals` environment to register the current prompt text in Langfuse as the `staging` version that the gate evaluates.
+
 ## Known limitations
 
 - **Single shared API key.** No per-user identity or rate limiting, and any `thread_id` can be read with the key.
@@ -186,14 +188,16 @@ The eval gate calls paid LLM APIs, so it only runs for the repository owner, on 
 - **Uploads** are limited to PDFs up to `MAX_UPLOAD_MB`; a file with a valid header but a corrupt body fails inside extraction.
 - **Uploaded PDFs live in process memory** (`document_store.py`) between upload and extraction, so an API restart in that window fails that run with an "upload it again" error.
 - **Windows:** `psycopg` async cannot use asyncio's default `ProactorEventLoop`, so the connection pool times out. Run the stack with Docker (Linux) or WSL.
-- **`/chat`** calls the LLM synchronously inside an async handler, which blocks the event loop while it answers.
-- **Retrieval eval thresholds** (`RETRIEVAL_MIN_REGULATION_HIT`, `RETRIEVAL_MIN_ARTICLE_HIT`) are provisional until calibrated against a real run; the golden dataset has only three evaluable cases, so each rate moves in steps of 0.33. Article attribution relies on each chunk's `articles` tag (set at ingestion from "Artículo N" headers), so a cross-reference at the start of a line can be tagged with the wrong article.
-- **The LLM-dependent paths** (analysis, vision, judge, semantic guardrail, chat) are verified only by the eval gate and by manual runs, not by the key-less test layers.
-- Model IDs in `config.py` are the previous generation of the Claude family.
+- **Evals.** The golden dataset has 17 synthetic cases (13 with an expected gap). Its legal labels have not been reviewed by a lawyer, citations are scored at article level, and the precision/recall (`0.85`/`0.80`) and retrieval (`RETRIEVAL_MIN_REGULATION_HIT`, `RETRIEVAL_MIN_ARTICLE_HIT`) thresholds are provisional until calibrated over several real runs. One case can fit more than one article (the identity-verification case fits Art. 11, 13 and 14 of the 4AMLD), so a miss can be a labelling question rather than a defect.
+- **Article attribution of chunks** relies on the "Artículo N" headers found at ingestion, so a cross-reference that starts a line can be tagged with the wrong article. Recitals and annexes carry no article and are left out of the rerank.
+- **The LLM-dependent paths** (analysis, vision, judge, semantic guardrail, chat) are verified only by the eval gate (which covers the analyzer prompt and retrieval, not the full pipeline end to end) and by manual runs, not by the key-less test layers. The scanned-PDF vision path has no automated check.
+- **Cache invalidation on prompt promotion.** `promote_prompt` clears `analysis_cache` in whatever database `DATABASE_URL` points at; run from CI that is the job's throwaway database, so a deployment's cached reports stay stale until the 7-day TTL expires.
 
 ## License
 
 [MIT](LICENSE)
+
+Built as the final project of an AI Engineering master's program.
 
 ## Documentation
 
