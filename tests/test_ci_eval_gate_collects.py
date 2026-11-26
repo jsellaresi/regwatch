@@ -129,3 +129,13 @@ def test_eval_gate_runs_both_suites_against_a_real_pgvector_database():
     commands = " ".join(step.get("run", "") for step in job["steps"])
     assert "evals/eval_suite.py" in commands and "evals/retrieval_suite.py" in commands
     assert "scripts.ingest_regulations" in commands
+
+
+def test_register_prompt_workflow_is_manual_owner_only_and_uses_the_evals_environment():
+    workflow = _workflow("register-prompt.yml")
+    assert set(_triggers(workflow)) == {"workflow_dispatch"}
+    job = workflow["jobs"]["register"]
+    assert job["environment"] == "evals"
+    assert job["if"] == "github.actor == github.repository_owner"
+    commands = " ".join(step.get("run", "") for step in job["steps"])
+    assert "scripts.register_prompts" in commands
