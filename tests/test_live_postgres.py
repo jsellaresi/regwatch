@@ -112,3 +112,13 @@ def test_cache_invalidation_works_on_the_schema_the_migrations_build(live_db, mo
     with psycopg.connect(live_db) as conn, conn.cursor() as cur:
         cur.execute("SELECT count(*) FROM analysis_cache")
         assert cur.fetchone()[0] == 0
+
+
+def test_article_tags_are_persisted_on_every_chunk_of_a_long_article(live_db):
+    text = "Artículo 5\n" + "principios de tratamiento " * 80 + "\nArtículo 6\n" + "licitud " * 120
+    _ingest("AAA", "GDPR", text)
+    with psycopg.connect(live_db) as conn, conn.cursor() as cur:
+        cur.execute("SELECT cmetadata->>'articles', count(*) FROM langchain_pg_embedding GROUP BY 1")
+        tags = dict(cur.fetchall())
+    assert tags.get("[5]", 0) >= 2, tags  # the article spans several chunks and all of them are tagged
+    assert tags.get("[6]", 0) >= 1, tags

@@ -22,17 +22,24 @@ def expected_article(ref: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
+def _belongs_to_article(chunk: dict, article: int) -> bool:
+    """True if the chunk is part of the article: the ingestion records the article(s)
+    of every chunk in `articles`; a chunk without that metadata (older corpus) only
+    counts if it opens the article with its "Artículo N" header."""
+    if article in chunk.get("articles", []):
+        return True
+    return bool(re.search(rf"(?m)^\s*Art[ií]culo\s+{article}\b", chunk.get("content", "")))
+
+
 def score_retrieval(retrieved: list[dict], ref: str) -> dict:
     """regulation_hit: some retrieved chunk belongs to the expected regulation.
-    article_hit: the chunk that opens the expected article ("Artículo N" at the
-    start of a line) is among the retrieved ones. A chunk that merely continues a
-    long article does not count, so article_hit is a conservative measure."""
+    article_hit: some retrieved chunk of that regulation belongs to the expected
+    article (any chunk of it, not only the one that opens it: a long article is
+    split and the cited paragraph usually sits in a later chunk)."""
     regulation = expected_regulation(ref)
     article = expected_article(ref)
     from_regulation = [c for c in retrieved if c.get("regulation") == regulation]
-    article_hit = article is not None and any(
-        re.search(rf"(?m)^\s*Art[ií]culo\s+{article}\b", c.get("content", "")) for c in from_regulation
-    )
+    article_hit = article is not None and any(_belongs_to_article(c, article) for c in from_regulation)
     return {"regulation_hit": bool(from_regulation), "article_hit": article_hit}
 
 

@@ -12,6 +12,7 @@ def test_delete_sql_is_scoped_to_one_regulation_and_keeps_new_chunks():
 
 class _FakeChunk:
     def __init__(self):
+        self.page_content = ""
         self.metadata = {}
 
 

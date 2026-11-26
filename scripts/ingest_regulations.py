@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 
 from langchain_community.document_loaders import PDFPlumberLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -73,17 +74,45 @@ def _delete_stale_chunks(connection_string: str, celex: str, new_ids: list[str])
         return conn.execute(text(DELETE_STALE_CHUNKS_SQL), {"celex": celex, "new_ids": new_ids}).rowcount
 
 
-def ingest_regulation(pdf_path: str, regulation_name: str,
-                      celex: str, source_url: str, version_date: str):
-    loader = PDFPlumberLoader(pdf_path)
-    raw_docs = loader.load()
+ARTICLE_HEADER_RE = re.compile(r"(?m)^\s*Art[ií]culo\s+(\d+)\b")
 
+
+def tag_articles(chunks) -> None:
+    """Record in `metadata["articles"]` which article(s) each chunk belongs to.
+
+    A long article is split into several chunks and only the first one starts with
+    its "Artículo N" header; without this, the chunk that holds e.g. GDPR 5(1)(e)
+    could not be traced back to Article 5. Chunks are visited in document order: a
+    chunk inherits the article opened before it, plus any header that starts a line
+    inside it (small adjacent articles can share a chunk). Text before the first
+    article (recitals) gets an empty list."""
+    current = None
+    for chunk in chunks:
+        headers = [int(n) for n in ARTICLE_HEADER_RE.findall(chunk.page_content)]
+        opens_with_header = ARTICLE_HEADER_RE.match(chunk.page_content) is not None
+        inherited = [current] if current is not None and not opens_with_header else []
+        chunk.metadata["articles"] = inherited + headers
+        if headers:
+            current = headers[-1]
+
+
+def split_into_chunks(raw_docs) -> list:
+    """Split loaded PDF pages into chunks (one natural break per article) and tag
+    each chunk with the article(s) it belongs to."""
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=800,
         chunk_overlap=100,
         separators=["\nArtículo", "\nArticle", "\n\n", "\n"],
     )
     chunks = splitter.split_documents(raw_docs)
+    tag_articles(chunks)
+    return chunks
+
+
+def ingest_regulation(pdf_path: str, regulation_name: str,
+                      celex: str, source_url: str, version_date: str):
+    loader = PDFPlumberLoader(pdf_path)
+    chunks = split_into_chunks(loader.load())
 
     for chunk in chunks:
         chunk.metadata.update({

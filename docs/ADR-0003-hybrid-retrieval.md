@@ -50,6 +50,11 @@ Fixed by splitting the document into queries per section/clause with `RecursiveC
 `get_hybrid_retriever().invoke(query)` once per section (cap of `MAX_SECTIONS = 8` for cost/latency), and
 deduplicating the combined result by `(regulation, content)`. A document that fits in a single query
 (`<= 2,000` characters) still makes exactly one retrieval call — behaviour unchanged for short documents.
+
+Every corpus chunk also carries the article(s) it belongs to (`articles` metadata, set at ingestion by
+`tag_articles`). A long article is split into several chunks and only the first starts with its "Artículo N"
+header, while the paragraph a gap cites (e.g. GDPR 5(1)(e)) usually sits in a later one; the retrieval eval
+(`evals/retrieval_suite.py`) uses the tag to tell whether the expected article was retrieved.
 The reranking ([ADR-0005](ADR-0005-cross-encoder-reranking.md)) still reduces the now more diverse set to
 `TOP_N = 5` without changes of its own: decomposition improves what enters the candidate *pool*, not how
 it is trimmed at the end. If five chunks still fail to cover all the topics of a complex policy after this

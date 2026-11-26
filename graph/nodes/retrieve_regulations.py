@@ -67,6 +67,7 @@ def retrieve_regulations(state: RegWatchState) -> dict:
                 "content": d.page_content,
                 "regulation": d.metadata.get("regulation", "unknown"),
                 "celex": d.metadata.get("celex", ""),
+                "articles": d.metadata.get("articles", []),
                 "source_url": d.metadata.get("source_url", ""),
             }
             for d in docs
