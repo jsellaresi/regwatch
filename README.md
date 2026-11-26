@@ -150,7 +150,8 @@ regwatch/
 ```bash
 uv sync
 uv run pytest tests -q        # unit tests: no env vars, DB or network required
-uv run pytest evals -q        # eval suite against the golden dataset (needs live API keys)
+uv run pytest evals/eval_suite.py -q       # staging prompt vs the golden dataset (needs live API keys)
+uv run pytest evals/retrieval_suite.py -q  # retrieval + rerank hit rate (needs the corpus ingested, OpenAI key, a reranker)
 ```
 
 CI runs lint and unit tests on every push (`.github/workflows/health-check.yml`) and gates prompt promotion on the eval suite (`.github/workflows/eval_gate.yml`).

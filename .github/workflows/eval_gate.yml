@@ -19,29 +19,80 @@ jobs:
     if: github.actor == github.repository_owner
     environment: evals
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: regwatch
+          POSTGRES_PASSWORD: regwatch
+          POSTGRES_DB: regwatch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U regwatch -d regwatch"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      # config.validate_required() only checks these are *present*, not
-      # reachable. Nothing on the current evals/eval_suite.py path touches
-      # Postgres (it calls the LLM directly, bypassing retrieval/rerank/the
-      # LLM cache — see finding 22), so a placeholder is correct today. If
-      # evals are later extended to exercise caching or the full graph, this
-      # needs to become a real `services: postgres` connection string.
-      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci_placeholder_unused"
+      # Optional: with a Cohere key the API reranks; without it the local BGE model is used.
+      COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
+      # The retrieval suite queries the corpus ingested into the service container above.
+      DATABASE_URL: "postgresql://regwatch:regwatch@localhost:5432/regwatch"
+      PGPASSWORD: regwatch
       LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
       LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
       LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: Run eval suite against staging prompt
-        run: uv run pytest evals/eval_suite.py -v --tb=short
+      - name: Enable pgvector
+        run: psql -h localhost -U regwatch -d regwatch -v ON_ERROR_STOP=1 -f docker/init-db.sql
+
+      # The corpus embeddings cost API credits, so keep them: ingest once per
+      # (PDFs, ingestion code, config) and restore a dump on later runs.
+      - name: Restore corpus cache
+        id: corpus-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: corpus.sql
+          key: corpus-${{ hashFiles('data/*.pdf', 'scripts/ingest_regulations.py', 'config.py') }}
+
+      - name: Load cached corpus
+        if: steps.corpus-cache.outputs.cache-hit == 'true'
+        run: psql -h localhost -U regwatch -d regwatch -v ON_ERROR_STOP=1 -f corpus.sql
+
+      - name: Ingest corpus (OpenAI embeddings)
+        if: steps.corpus-cache.outputs.cache-hit != 'true'
+        run: |
+          uv run python -m scripts.ingest_regulations
+          # Strip pg_dump's restrict/unrestrict guard lines so an older psql can still load a cached dump.
+          pg_dump -h localhost -U regwatch -d regwatch --no-owner --no-privileges \
+            -t langchain_pg_collection -t langchain_pg_embedding \
+            | grep -v -E '^.(un)?restrict ' > corpus.sql
+
+      - name: Save corpus cache
+        if: steps.corpus-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: corpus.sql
+          key: ${{ steps.corpus-cache.outputs.cache-primary-key }}
+
+      - name: Cache local reranker model
+        if: env.COHERE_API_KEY == ''
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-bge-reranker-v2-m3-v1
+
+      - name: Run eval suites (staging prompt + retrieval)
+        run: uv run pytest evals/eval_suite.py evals/retrieval_suite.py -v --tb=short -s
 
       - name: Promote prompt to production
         if: success() && github.event_name == 'push'
