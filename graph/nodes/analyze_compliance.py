@@ -16,7 +16,7 @@ _analyzer = None
 def _get_analyzer():
     global _analyzer
     if _analyzer is None:
-        _analyzer = ChatAnthropic(model=MODEL_ANALYZER, temperature=0.1).with_structured_output(GapReport)
+        _analyzer = ChatAnthropic(model=MODEL_ANALYZER).with_structured_output(GapReport)
     return _analyzer
 
 
@@ -29,9 +29,8 @@ def build_retry_feedback(state: RegWatchState) -> str:
     """Render the previous attempt's guardrail/judge feedback as a prompt
     block, or "" if this is a fresh (non-retry) run. Without this, a retry
     resends the exact same prompt — with the global LLM cache enabled
-    (config.init_llm_cache) and temperature=0.1, that's a cache hit on the
-    same failing response, so the retry loop can never actually correct
-    anything. Pure/side-effect-free so it can be unit tested directly."""
+    (config.init_llm_cache) that's a cache hit on the same failing
+    response, so the retry loop can never actually correct anything. Pure/side-effect-free so it can be unit tested directly."""
     lines = []
     guardrail_reason = state.get("guardrail_reason")
     if guardrail_reason:
