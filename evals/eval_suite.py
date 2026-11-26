@@ -11,7 +11,7 @@ _llm = None
 def _get_llm():
     global _llm
     if _llm is None:
-        _llm = ChatAnthropic(model=MODEL_ANALYZER, temperature=0).with_structured_output(GapReport)
+        _llm = ChatAnthropic(model=MODEL_ANALYZER).with_structured_output(GapReport)
     return _llm
 
 
