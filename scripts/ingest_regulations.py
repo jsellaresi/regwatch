@@ -74,7 +74,9 @@ def _delete_stale_chunks(connection_string: str, celex: str, new_ids: list[str])
         return conn.execute(text(DELETE_STALE_CHUNKS_SQL), {"celex": celex, "new_ids": new_ids}).rowcount
 
 
+CHUNK_SIZE = 800
 ARTICLE_HEADER_RE = re.compile(r"(?m)^\s*Art[ií]culo\s+(\d+)\b")
+ANNEX_HEADER_RE = re.compile(r"(?m)^\s*ANEXO\b")
 
 
 def tag_articles(chunks) -> None:
@@ -85,9 +87,18 @@ def tag_articles(chunks) -> None:
     could not be traced back to Article 5. Chunks are visited in document order: a
     chunk inherits the article opened before it, plus any header that starts a line
     inside it (small adjacent articles can share a chunk). Text before the first
-    article (recitals) gets an empty list."""
+    article (recitals) gets an empty list, and so does everything from the first
+    "ANEXO" header on (a chunk that mixes the end of the last article with the start of
+    an annex is tagged as an annex)."""
     current = None
+    in_annex = False
     for chunk in chunks:
+        if in_annex or ANNEX_HEADER_RE.search(chunk.page_content):
+            # Annexes come after every article, and their tables (e.g. the correspondence
+            # table with the repealed directive) repeat "Artículo N" lines that are not articles.
+            in_annex = True
+            chunk.metadata["articles"] = []
+            continue
         headers = [int(n) for n in ARTICLE_HEADER_RE.findall(chunk.page_content)]
         opens_with_header = ARTICLE_HEADER_RE.match(chunk.page_content) is not None
         inherited = [current] if current is not None and not opens_with_header else []
@@ -100,7 +111,7 @@ def split_into_chunks(raw_docs) -> list:
     """Split loaded PDF pages into chunks (one natural break per article) and tag
     each chunk with the article(s) it belongs to."""
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,
+        chunk_size=CHUNK_SIZE,
         chunk_overlap=100,
         separators=["\nArtículo", "\nArticle", "\n\n", "\n"],
     )
