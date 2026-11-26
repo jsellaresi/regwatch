@@ -71,7 +71,11 @@ jobs:
 
       - name: Load cached corpus
         if: steps.corpus-cache.outputs.cache-hit == 'true'
-        run: psql -h localhost -U regwatch -d regwatch -v ON_ERROR_STOP=1 -f corpus.sql
+        # The runner's pg_dump can be newer than the Postgres 16 service: drop the settings
+        # (e.g. transaction_timeout, Postgres 17+) that the server does not know.
+        run: |
+          grep -v -E '^SET transaction_timeout' corpus.sql \
+            | psql -h localhost -U regwatch -d regwatch -v ON_ERROR_STOP=1 -f -
 
       - name: Ingest corpus (OpenAI embeddings)
         if: steps.corpus-cache.outputs.cache-hit != 'true'

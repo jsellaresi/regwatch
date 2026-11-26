@@ -150,3 +150,11 @@ def test_eval_gate_applies_every_migration_before_ingesting_the_corpus():
     ingest = next(i for i, run in enumerate(runs) if "scripts.ingest_regulations" in run)
     assert migrate < ingest
     assert "docker/init-db.sql" in runs[migrate]
+
+
+def test_cached_corpus_is_loaded_without_settings_newer_than_the_postgres_service():
+    # The runner's pg_dump can be newer than the Postgres 16 service and emit
+    # `SET transaction_timeout`, which the server rejects; the cached dump is reused across runs.
+    steps = _workflow("eval_gate.yml")["jobs"]["eval-gate"]["steps"]
+    load = next(step for step in steps if step.get("name") == "Load cached corpus")
+    assert "transaction_timeout" in load["run"] and "ON_ERROR_STOP=1" in load["run"]
