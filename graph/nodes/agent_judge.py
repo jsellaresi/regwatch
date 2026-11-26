@@ -2,7 +2,7 @@ import json
 import logging
 
 from langchain_openai import ChatOpenAI
-from config import MODEL_JUDGE
+from config import MODEL_JUDGE, REG_CONTEXT_CHARS
 from langchain_core.prompts import ChatPromptTemplate
 from langfuse import observe
 from graph.state import RegWatchState
@@ -60,7 +60,7 @@ def agent_judge(state: RegWatchState) -> dict:
     ])
     sub_scores: JudgeSubScores = (prompt | _get_llm_judge()).invoke({
         "report": json.dumps(state["gap_report"], ensure_ascii=False),
-        "regulations": reg_context[:4000],
+        "regulations": reg_context[:REG_CONTEXT_CHARS],
         "document": state["extracted_text"][:2000],
     })
     overall_score, approved = compute_judge_verdict(

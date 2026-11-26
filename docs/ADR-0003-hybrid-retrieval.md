@@ -55,10 +55,10 @@ Every corpus chunk also carries the article(s) it belongs to (`articles` metadat
 `tag_articles`). A long article is split into several chunks and only the first starts with its "Artículo N"
 header, while the paragraph a gap cites (e.g. GDPR 5(1)(e)) usually sits in a later one; the retrieval eval
 (`evals/retrieval_suite.py`) uses the tag to tell whether the expected article was retrieved.
-The reranking ([ADR-0005](ADR-0005-cross-encoder-reranking.md)) still reduces the now more diverse set to
-`TOP_N = 5` without changes of its own: decomposition improves what enters the candidate *pool*, not how
-it is trimmed at the end. If five chunks still fail to cover all the topics of a complex policy after this
-fix, raising `TOP_N` is a pending tuning adjustment, not part of this ADR.
+The reranking ([ADR-0005](ADR-0005-cross-encoder-reranking.md)) then reduces the now more diverse set to
+`TOP_N = 8` chunks: decomposition improves what enters the candidate *pool*, not how it is trimmed at the end,
+and five chunks proved too few for a policy that touches several regulations (the retrieval eval showed the
+right article being dropped at the cut).
 
 ## Alternatives considered
 

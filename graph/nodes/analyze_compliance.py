@@ -1,7 +1,7 @@
 import logging
 
 from langchain_anthropic import ChatAnthropic
-from config import MODEL_ANALYZER
+from config import MODEL_ANALYZER, REG_CONTEXT_CHARS
 from langchain_core.messages import SystemMessage, HumanMessage
 from langfuse import observe
 from graph.state import RegWatchState
@@ -60,7 +60,7 @@ def analyze_compliance(state: RegWatchState) -> dict:
             HumanMessage(content=(
                 f"{retry_feedback}"
                 f"## Documento a analizar\n{state['extracted_text'][:6000]}\n\n"
-                f"## Regulaciones relevantes recuperadas\n{reg_context[:4000]}\n\n"
+                f"## Regulaciones relevantes recuperadas\n{reg_context[:REG_CONTEXT_CHARS]}\n\n"
                 f"## Información adicional de herramientas\n{tool_context[:1000]}\n\n"
                 "Genera el informe de compliance."
             )),
