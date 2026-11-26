@@ -14,10 +14,8 @@ report is issued or tickets are opened.
 Introduce an **Agent-as-Judge** node that scores the report on three dimensions (`legal_accuracy`,
 `citation_quality`, `actionability`) and decides `approved`. Two key decisions:
 
-1. **A different model from the analyzer:** the analyzer uses `claude-haiku-4-5`; the judge uses `gpt-4o`. An
-   independent evaluator reduces the bias of evaluating one's own reasoning. (Note: if this model choice is revisited,
-   the current generation IDs are `claude-sonnet-5` / `claude-opus-5`, for information only, not a recommendation to
-   change.)
+1. **A different model from the analyzer:** the analyzer uses `claude-haiku-5-5`; the judge uses `gpt-4o`. An
+   independent evaluator reduces the bias of evaluating one's own reasoning.
 2. **Structured output** (`JudgeScores`, see [ADR-0008](ADR-0008-structured-output-pydantic.md)) and a **bounded**
    retry loop (max. 3): if it does not approve, the analysis is retried; when attempts are exhausted, the step is
    **not forced** but escalated to human review ([ADR-0011](ADR-0011-human-in-the-loop-interrupt.md)).
