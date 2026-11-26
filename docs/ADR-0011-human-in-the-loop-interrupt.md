@@ -26,7 +26,8 @@ Replace the force-pass with a `human_review_checkpoint` node that uses LangGraph
   resumed later.
 - The officer reviews (in the UI) and the API resumes with
   `graph.invoke(Command(resume="approve"|"reject"), config)` on the same `thread_id`.
-- `approve` → `format_report`; `reject` → retries the analysis.
+- `approve` → `format_report` (or, if the analysis itself failed, a final error report: nothing is cached, ticketed
+  or remembered); `reject` → retries the analysis.
 
 ## Why `interrupt()` and not other forms of "pausing"
 

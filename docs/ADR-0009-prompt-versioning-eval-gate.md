@@ -20,7 +20,13 @@ or when the output format is tuned. Treating it as hardcoded text in the code ca
   recorded in each report's trace (audit).
 - **Eval gate in CI.** A *golden* dataset with known cases measures *precision/recall* and citation format.
   GitHub Actions runs the suite against the prompt in `staging`; **only if it passes the thresholds** (precision ≥ 0.85,
-  recall ≥ 0.80, 0 malformed citations) is it promoted to `production` (`promote_prompt.py`).
+  recall ≥ 0.80, 0 malformed citations) is it promoted to `production` (`promote_prompt.py`). The gate also runs a
+  retrieval suite (`evals/retrieval_suite.py`): whether the expected regulation and article reach the analyzer after
+  retrieval and reranking (provisional thresholds).
+- **Registration and promotion.** `register_prompts.py` labels a new version `staging`; only the very first
+  registration in an environment also gets `production`, so the app can start. `promote_prompt.py` relabels the
+  version that was evaluated as `production` instead of creating a new one, so production runs exactly the version
+  that passed the gate.
 
 ## Consequences
 
