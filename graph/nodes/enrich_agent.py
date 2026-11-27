@@ -31,16 +31,16 @@ ENRICH_SYSTEM = (
 
 @observe(name="enrich_agent")
 def enrich_agent(state: RegWatchState) -> dict:
+    opening = [
+        SystemMessage(content=ENRICH_SYSTEM),
+        HumanMessage(content=f"Documento de política:\n{state['extracted_text'][:3000]}"),
+    ]
     existing = state.get("messages") or []
-    if existing and isinstance(existing[-1], ToolMessage):
-        # Mid-tool-loop: continue with accumulated messages
-        msgs = existing
-    else:
-        # Fresh start (or stale checkpoint): rebuild from scratch
-        msgs = [
-            SystemMessage(content=ENRICH_SYSTEM),
-            HumanMessage(content=f"Documento de política:\n{state['extracted_text'][:3000]}"),
-        ]
+    # The opening messages are not kept in the state, so every call rebuilds them. In a later round
+    # of the tool loop they must come before the accumulated messages: the model has to see the
+    # document, and its reasoning blocks are bound to the conversation they were produced in.
+    in_tool_loop = bool(existing) and isinstance(existing[-1], ToolMessage)
+    msgs = opening + list(existing) if in_tool_loop else opening
     response = _get_llm_enrich().invoke(msgs)
     if getattr(response, "tool_calls", None):
         logger.info("enrich_agent: %d tool call(s) requested", len(response.tool_calls))
