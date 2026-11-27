@@ -198,6 +198,10 @@ onUnmounted(() => { if (running.value) cancel() })
   flex-direction: column;
   gap: 1.75rem;
   min-width: 0;
+
+  // The column scrolls; without this the pipeline card (overflow-x: auto) gets squashed
+  // into its own scroll box when the window is short, instead of the page scrolling.
+  > * { flex-shrink: 0; }
 }
 
 // ── Header ──
