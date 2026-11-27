@@ -30,6 +30,28 @@ For full setup instructions, local development without Docker, and how to test a
 
 ---
 
+## Screenshots
+
+Captured from the running Docker stack with the synthetic fixtures in `fixtures/` (see `scripts/make_fixtures.py`). The UI is in Spanish by design.
+
+**Gap report** — all 13 pipeline steps completed for `policy_retencion.pdf`:
+
+![Pipeline and report summary](docs/images/report-pipeline.jpg)
+
+**Gaps with citations, risk and remediation** — each gap points to the exact GDPR article:
+
+![Gaps table](docs/images/gaps-table.jpg)
+
+**Human-in-the-loop** — the graph pauses after the judge and waits for approval before creating tickets:
+
+![Human review](docs/images/human-review.jpg)
+
+**Input guardrail** — `policy_injection.pdf` is blocked before retrieval and no report is generated:
+
+![Guardrail block](docs/images/guardrail-blocked.jpg)
+
+---
+
 ## Architecture
 
 ```
