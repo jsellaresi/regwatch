@@ -6,6 +6,7 @@ from config import MODEL_VISION
 from langchain_core.messages import HumanMessage
 from langfuse import observe
 from config import get_langfuse
+from graph.llm_text import message_text
 from graph.state import RegWatchState
 import document_store
 
@@ -61,7 +62,7 @@ def multimodal_extract(state: RegWatchState) -> dict:
             ])
         ])
 
-        page_text = f"[Página {page_num + 1} — escaneada]\n{response.content}"
+        page_text = f"[Página {page_num + 1} — escaneada]\n{message_text(response)}"
         full_text_parts.append(page_text)
         vision_pages += 1
 

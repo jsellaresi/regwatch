@@ -2,6 +2,7 @@ import logging
 import re
 from langchain_anthropic import ChatAnthropic
 from config import MODEL_GUARDRAIL
+from graph.llm_text import message_text
 from graph.schemas import VALID_CITATION_RE
 from graph.state import RegWatchState
 
@@ -86,7 +87,7 @@ Texto: {redacted[:GUARD_WINDOW_CHARS]}
 
 Responde SOLO con: SAFE o BLOCKED: <razón breve>"""
     )
-    verdict = response.content.strip()
+    verdict = message_text(response).strip()
     if verdict.startswith("BLOCKED"):
         logger.warning("input_guardrail: BLOCKED by LLM check")
         return {"guardrail_passed": False, "guardrail_reason": verdict}

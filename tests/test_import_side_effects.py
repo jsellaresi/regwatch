@@ -38,6 +38,7 @@ _ISOLATED_KEYS = ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "DATABASE_URL",
 
 def _run(code: str, env: dict) -> subprocess.CompletedProcess:
     full_env = {k: v for k, v in os.environ.items() if k not in _ISOLATED_KEYS}
+    full_env["PYTHON_DOTENV_DISABLED"] = "1"  # a local .env must not refill the variables removed above
     full_env.update(env)
     return subprocess.run(
         [sys.executable, "-c", code],
