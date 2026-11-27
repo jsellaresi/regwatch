@@ -7,10 +7,11 @@ import UploadForm    from './UploadForm.vue'
 import IngestSection from './IngestSection.vue'
 import PipelineRail  from './PipelineRail.vue'
 import HumanReview   from './HumanReview.vue'
+import OutcomeNotice from './OutcomeNotice.vue'
 import ReportSection from './ReportSection.vue'
 
 const {
-  completedNodes, report, needsReview, running,
+  completedNodes, report, outcome, needsReview, running,
   chatHistory, chatLoading,
   analyze, resume, chat, restoreSession, cancel,
 } = useAnalysis()
@@ -83,6 +84,7 @@ onUnmounted(() => { if (running.value) cancel() })
       <UploadForm    :running="running" @submit="(f, pid) => analyze(f, pid)" />
       <IngestSection />
       <PipelineRail  :pipeline="PIPELINE" :completed-nodes="completedNodes" :running="running" />
+      <OutcomeNotice v-if="outcome" :outcome="outcome" />
       <HumanReview   v-if="needsReview" :reason="needsReview.reason" :iteration="needsReview.iteration" @approve="resume('approve')" @reject="resume('reject')" />
       <ReportSection v-if="activeReport" :report="activeReport" :chat-history="chatHistory" :chat-loading="chatLoading" @chat="chat" />
     </main>
