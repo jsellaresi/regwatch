@@ -31,6 +31,7 @@ services:
         condition: service_healthy
     volumes:
       - ./data:/app/data
+      - hf_cache:/root/.cache/huggingface  # the local reranker (about 2 GB) is downloaded once, not on every rebuild
 
   frontend:
     build:
@@ -44,3 +45,4 @@ services:
 
 volumes:
   pgdata:
+  hf_cache:
