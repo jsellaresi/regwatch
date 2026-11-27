@@ -38,6 +38,7 @@ _ISOLATED_KEYS = tuple(CI_ENV)
 
 def _collect(env_overrides: dict, target: str = "evals/eval_suite.py") -> subprocess.CompletedProcess:
     env = {k: v for k, v in os.environ.items() if k not in _ISOLATED_KEYS}
+    env["PYTHON_DOTENV_DISABLED"] = "1"  # a local .env must not refill the variables removed above
     env.update(env_overrides)
     return subprocess.run(
         [sys.executable, "-m", "pytest", target, "--collect-only", "-q"],
