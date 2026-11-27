@@ -26,6 +26,7 @@ const ALL_LABELS = [...new Set(Object.values(NODE_LABELS))]
 export function useAnalysis() {
   const completedNodes = ref([])
   const report = ref(null)
+  const outcome = ref(null)  // a run that ended without a report: blocked by a guardrail, or failed
   const needsReview = ref(null)
   const running = ref(false)
   const threadId = ref(null)
@@ -38,10 +39,20 @@ export function useAnalysis() {
     for (const l of labels) if (!completedNodes.value.includes(l)) completedNodes.value.push(l)
   }
 
+  // A final report, or a run that ended without one ({status: 'blocked' | 'error', error}).
+  // Returns true when it was a report.
+  function _finish(data) {
+    if (data.status === 'blocked' || data.status === 'error') { outcome.value = data; return false }
+    report.value = data
+    _addNodes(ALL_LABELS)
+    return true
+  }
+
   // Apply a /state response.
   // Returns: true = terminal state applied, null = aborted/dead, false = still running
   function _applyState(data) {
     if (!data || data.status === 'aborted') return null
+    if (data.status === 'blocked' || data.status === 'error') { outcome.value = data; return true }
     if (data.status === 'completed')    { report.value = data;      _addNodes(ALL_LABELS);      return true }
     if (data.status === 'needs_review') { needsReview.value = data; _addNodes(PRE_HITL_LABELS); return true }
     return false
@@ -57,6 +68,7 @@ export function useAnalysis() {
     completedNodes.value = []
     report.value = null
     needsReview.value = null
+    outcome.value = null
     chatHistory.value = []
     sessionStorage.removeItem('rw_thread_id')
     threadId.value = null
@@ -67,6 +79,7 @@ export function useAnalysis() {
     completedNodes.value = []
     report.value = null
     needsReview.value = null
+    outcome.value = null
     chatHistory.value = []
     // Append a run timestamp so each fresh analysis gets its own LangGraph thread.
     // Reusing the same thread_id on a HITL-paused thread returns an empty stream.
@@ -107,7 +120,7 @@ export function useAnalysis() {
           try { data = JSON.parse((block.match(/data: (.*)/) || [])[1] || '{}') } catch { continue }
           if (ev === 'node')         _addNodes([NODE_LABELS[data.node] || data.node])
           if (ev === 'needs_review') { needsReview.value = data; _addNodes(PRE_HITL_LABELS) }
-          if (ev === 'done')         { report.value = data; _addNodes(ALL_LABELS) }
+          if (ev === 'done')         _finish(data)
         }
       }
     } catch (e) {
@@ -117,7 +130,7 @@ export function useAnalysis() {
     running.value = false
 
     // Fallback: SSE closed before a terminal event arrived (e.g. ERR_ABORTED on proxy)
-    if (!report.value && !needsReview.value) _applyState(await _fetchState(threadId.value))
+    if (!report.value && !needsReview.value && !outcome.value) _applyState(await _fetchState(threadId.value))
   }
 
   async function resume(decision) {
@@ -129,9 +142,8 @@ export function useAnalysis() {
       form.append('decision', decision)
       const data = await (await apiFetch('/resume', { method: 'POST', body: form })).json()
       if (data.status === 'done') {
-        report.value = data.final_report
         // resume returns JSON, not a stream — mark post-HITL steps done manually
-        _addNodes(['Revisión humana', 'Informe', 'Tickets JIRA', 'Memoria'])
+        if (_finish(data.final_report)) _addNodes(['Revisión humana', 'Informe', 'Tickets JIRA', 'Memoria'])
       } else if (data.status === 'needs_review') {
         needsReview.value = data
       } else if (data.status === 'error') {
@@ -169,7 +181,7 @@ export function useAnalysis() {
       if (result !== false) break  // terminal (true) or aborted/dead (null)
     }
     running.value = false
-    if (!report.value && !needsReview.value) {
+    if (!report.value && !needsReview.value && !outcome.value) {
       // Timed out or aborted — clean up session
       sessionStorage.removeItem('rw_thread_id')
       threadId.value = null
@@ -189,7 +201,7 @@ export function useAnalysis() {
   }
 
   return {
-    completedNodes, report, needsReview, running,
+    completedNodes, report, outcome, needsReview, running,
     threadId, chatHistory, chatLoading,
     analyze, resume, chat, restoreSession, cancel, NODE_LABELS,
   }
