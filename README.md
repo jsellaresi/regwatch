@@ -185,6 +185,7 @@ The manual, owner-only `Register Prompt (staging)` workflow uses the same `evals
 - **Cache hits.** A cache hit returns the stored report of an earlier run verbatim (its `policy_id` and prompt version included) and skips human review, tickets and memory; the key is the document hash alone.
 - **Gap identity** is the regulation reference, so two distinct gaps on the same article count as one in the episodic memory.
 - **Guardrails** rely on finite pattern lists (Spanish and English injections, DNI/NIE/IBAN/card/SSN) plus an LLM check; paraphrased attacks depend on the LLM check alone. Company tax IDs are not redacted.
+- **Enrichment adds little.** The EUR-Lex amendments tool has no working endpoint (it answers `202`) and fails loudly instead of reporting "no amendments"; web search only works with `TAVILY_API_KEY`. Without it the enrichment step runs but contributes nothing to the report.
 - **Uploads** are limited to PDFs up to `MAX_UPLOAD_MB`; a file with a valid header but a corrupt body fails inside extraction.
 - **Uploaded PDFs live in process memory** (`document_store.py`) between upload and extraction, so an API restart in that window fails that run with an "upload it again" error.
 - **Windows:** `psycopg` async cannot use asyncio's default `ProactorEventLoop`, so the connection pool times out. Run the stack with Docker (Linux) or WSL.
